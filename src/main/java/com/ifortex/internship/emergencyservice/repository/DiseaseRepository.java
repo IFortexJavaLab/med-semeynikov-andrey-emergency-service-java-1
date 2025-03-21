@@ -8,9 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface DiseaseRepository extends JpaRepository<Disease, Long> {
-
-    Optional<Disease> findByDiseaseId(UUID uuid);
+public interface DiseaseRepository extends JpaRepository<Disease, UUID> {
 
     Optional<Disease> findByName(String name);
 }

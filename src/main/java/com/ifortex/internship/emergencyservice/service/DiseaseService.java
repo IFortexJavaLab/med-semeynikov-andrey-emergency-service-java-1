@@ -1,11 +1,13 @@
 package com.ifortex.internship.emergencyservice.service;
 
 import com.ifortex.internship.emergencyservice.dto.DiseaseDto;
+import com.ifortex.internship.emergencyservice.dto.request.CreateDiseaseDto;
 import com.ifortex.internship.emergencyservice.model.Disease;
 import com.ifortex.internship.emergencyservice.repository.DiseaseRepository;
 import com.ifortex.internship.emergencyservice.util.DiseaseMapper;
 import com.ifortex.internship.medstarter.exception.custom.DuplicateResourceException;
 import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
+import com.ifortex.internship.medstarter.exception.custom.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -25,11 +27,18 @@ import java.util.UUID;
 public class DiseaseService {
 
     public static final String LOG_DISEASE_WITH_NAME_IS_ALREADY_EXISTS = "Disease with name : {} is already exists";
+    public static final String LOG_DISEASE_NAME_IS_NULL_OR_BLANK = "Disease name is null or blank";
 
     DiseaseRepository diseaseRepository;
     DiseaseMapper diseaseMapper;
 
-    public void createDisease(String name) {
+    public void createDisease(CreateDiseaseDto createDiseaseDto) {
+        String name = createDiseaseDto.name();
+
+        if (name == null || name.isBlank()) {
+            log.error(LOG_DISEASE_NAME_IS_NULL_OR_BLANK);
+            throw new InvalidRequestException("Disease name must not be null or blank");
+        }
         log.debug("Creating new disease with name: {}", name);
 
         if (diseaseRepository.findByName(name).isPresent()) {
@@ -38,7 +47,7 @@ public class DiseaseService {
         }
         Disease disease = new Disease(name);
         diseaseRepository.save(disease);
-        log.info("Disease with name: {} and ID: {} created successfully", name, disease.getDiseaseId());
+        log.info("Disease with name: {} and ID: {} created successfully", name, disease.getId());
     }
 
     public List<DiseaseDto> getAllDiseases(int page, int size) {
@@ -49,17 +58,22 @@ public class DiseaseService {
     }
 
     public void updateDisease(DiseaseDto disease) {
-        log.debug("Attempt to update disease with ID: {}", disease.diseaseId());
+        log.debug("Attempt to update disease with ID: {}", disease.id());
+
+        if (disease.name() == null || disease.name().isBlank()) {
+            log.error(LOG_DISEASE_NAME_IS_NULL_OR_BLANK);
+            throw new InvalidRequestException(String.format("Disease name must not be null or blank. Disease with ID: %s", disease.id()));
+        }
 
         if (diseaseRepository.findByName(disease.name()).isPresent()) {
             log.error(LOG_DISEASE_WITH_NAME_IS_ALREADY_EXISTS, disease.name());
             throw new DuplicateResourceException(String.format("Disease with name %s already exists.", disease.name()));
         }
-        Disease existingDisease = getDiseaseById(UUID.fromString(disease.diseaseId()));
+        Disease existingDisease = getDiseaseById(UUID.fromString(disease.id()));
         existingDisease.setName(disease.name());
 
         diseaseRepository.save(existingDisease);
-        log.info("Disease with ID: {} updated successfully", disease.diseaseId());
+        log.info("Disease with ID: {} updated successfully", disease.id());
     }
 
     public void deleteDisease(UUID diseaseId) {
@@ -71,7 +85,7 @@ public class DiseaseService {
 
     public Disease getDiseaseById(UUID diseaseId) {
         log.info("Request to get disease by ID: {}", diseaseId);
-        return diseaseRepository.findByDiseaseId(diseaseId)
+        return diseaseRepository.findById(diseaseId)
             .orElseThrow(() -> {
                 log.error("Disease with ID {} not found", diseaseId);
                 return new EntityNotFoundException(String.format("Disease with ID: %s not found", diseaseId));

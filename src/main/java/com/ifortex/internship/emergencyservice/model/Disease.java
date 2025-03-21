@@ -30,11 +30,8 @@ import java.util.UUID;
 public class Disease {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
-
-    @Column(nullable = false)
-    UUID diseaseId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    UUID id;
 
     @Column(nullable = false, unique = true)
     String name;
@@ -49,6 +46,5 @@ public class Disease {
 
     public Disease(String name) {
         this.name = name;
-        this.diseaseId = UUID.randomUUID();
     }
 }

@@ -30,11 +30,8 @@ import java.util.UUID;
 public class Allergy {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
-
-    @Column(nullable = false)
-    UUID allergyId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    UUID id;
 
     @Column(nullable = false, unique = true)
     String name;
@@ -49,6 +46,5 @@ public class Allergy {
 
     public Allergy(String name) {
         this.name = name;
-        this.allergyId = UUID.randomUUID();
     }
 }

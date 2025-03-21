@@ -12,7 +12,7 @@ import java.util.UUID;
 @Mapper(componentModel = "spring")
 public interface AllergyMapper {
 
-    @Mapping(target = "allergyId", source = "allergyId", qualifiedByName = "uuidToString")
+    @Mapping(target = "id", source = "id", qualifiedByName = "uuidToString")
     AllergyDto toDto(Allergy allergy);
 
     List<AllergyDto> toListDtos(List<Allergy> allergies);

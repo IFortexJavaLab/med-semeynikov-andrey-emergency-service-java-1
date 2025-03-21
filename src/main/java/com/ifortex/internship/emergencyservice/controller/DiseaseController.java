@@ -51,7 +51,7 @@ public class DiseaseController {
         @Valid @RequestBody CreateDiseaseDto createDiseaseDto
     ) {
         log.info("Request to create new disease with name: {}", createDiseaseDto.name());
-        diseaseService.createDisease(createDiseaseDto.name());
+        diseaseService.createDisease(createDiseaseDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -84,7 +84,7 @@ public class DiseaseController {
     public ResponseEntity<Disease> updateDisease(
         @Valid @RequestBody DiseaseDto updatedDisease
     ) {
-        log.info("Request to update disease with ID: {}", updatedDisease.diseaseId());
+        log.info("Request to update disease with ID: {}", updatedDisease.id());
         diseaseService.updateDisease(updatedDisease);
         log.info("Updated disease: {}", updatedDisease.name());
         return ResponseEntity.noContent().build();

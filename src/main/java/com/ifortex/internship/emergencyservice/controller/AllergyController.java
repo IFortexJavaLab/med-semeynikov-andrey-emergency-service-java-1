@@ -49,7 +49,7 @@ public class AllergyController {
     @PostMapping
     public ResponseEntity<Void> createAllergy(@Valid @RequestBody CreateAllergyDto createAllergyDto) {
         log.info("Request to create new allergy with name: {}", createAllergyDto.name());
-        allergyService.createAllergy(createAllergyDto.name());
+        allergyService.createAllergy(createAllergyDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -79,7 +79,7 @@ public class AllergyController {
     @PutMapping
     public ResponseEntity<Allergy> updateAllergy(
         @Valid @RequestBody AllergyDto updatedAllergy) {
-        log.info("Request to update allergy with ID: {}", updatedAllergy.allergyId());
+        log.info("Request to update allergy with ID: {}", updatedAllergy.id());
         allergyService.updateAllergy(updatedAllergy);
         log.info("Updated allergy: {}", updatedAllergy.name());
         return ResponseEntity.noContent().build();

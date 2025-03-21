@@ -8,9 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface AllergyRepository extends JpaRepository<Allergy, Long> {
-
-    Optional<Allergy> findByAllergyId(UUID allergyId);
+public interface AllergyRepository extends JpaRepository<Allergy, UUID> {
 
     Optional<Allergy> findByName(String name);
 }
