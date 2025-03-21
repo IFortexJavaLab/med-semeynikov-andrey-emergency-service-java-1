@@ -1,6 +1,6 @@
 package com.ifortex.internship.emergencyservice.util;
 
-import com.ifortex.internship.emergencyservice.dto.DiseaseDto;
+import com.ifortex.internship.emergencyservice.dto.response.DiseaseDto;
 import com.ifortex.internship.emergencyservice.model.Disease;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

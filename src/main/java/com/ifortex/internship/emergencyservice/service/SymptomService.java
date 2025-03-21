@@ -1,6 +1,6 @@
 package com.ifortex.internship.emergencyservice.service;
 
-import com.ifortex.internship.emergencyservice.dto.SymptomDto;
+import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomCreate;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomUpdate;
 import com.ifortex.internship.emergencyservice.model.Symptom;
@@ -39,15 +39,16 @@ public class SymptomService {
 
     @Transactional
     public void createSymptom(SymptomCreate symptomCreate) {
-        log.debug("Creating new symptom with name: {}", symptomCreate.name());
+        String name = symptomCreate.name();
+        log.debug("Creating new symptom with name: {}",  name);
 
         if (symptomRepository.findByName(symptomCreate.name()).isPresent()) {
-            log.error(LOG_SYMPTOM_WITH_NAME_IS_ALREADY_EXISTS, symptomCreate.name());
-            throw new DuplicateResourceException(String.format("Symptom with name %s already exists.", symptomCreate.name()));
+            log.error(LOG_SYMPTOM_WITH_NAME_IS_ALREADY_EXISTS, name);
+            throw new DuplicateResourceException(String.format("Symptom with name %s already exists.", name));
         }
 
         Symptom newSymptom = new Symptom()
-            .setName(symptomCreate.name())
+            .setName(name)
             .setType(symptomCreate.type())
             .setAdvice(symptomCreate.advice())
             .setAnimationKey(symptomCreate.animationKey());
@@ -59,7 +60,7 @@ public class SymptomService {
         }
 
         symptomRepository.save(newSymptom);
-        log.info("Symptom with name: {} and ID: {} created successfully", newSymptom.getName(), newSymptom.getId());
+        log.info("Symptom with name: {} and ID: {} created successfully", name, newSymptom.getId());
     }
 
     public List<SymptomDto> getAllRootSymptoms(int page, int size) {

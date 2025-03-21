@@ -1,6 +1,6 @@
 package com.ifortex.internship.emergencyservice.controller;
 
-import com.ifortex.internship.emergencyservice.dto.SymptomDto;
+import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomCreate;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomUpdate;
 import com.ifortex.internship.emergencyservice.service.SymptomService;

@@ -1,6 +1,6 @@
 package com.ifortex.internship.emergencyservice.controller;
 
-import com.ifortex.internship.emergencyservice.dto.DiseaseDto;
+import com.ifortex.internship.emergencyservice.dto.response.DiseaseDto;
 import com.ifortex.internship.emergencyservice.dto.request.CreateDiseaseDto;
 import com.ifortex.internship.emergencyservice.model.Disease;
 import com.ifortex.internship.emergencyservice.service.DiseaseService;

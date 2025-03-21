@@ -1,6 +1,6 @@
 package com.ifortex.internship.emergencyservice.controller;
 
-import com.ifortex.internship.emergencyservice.dto.AllergyDto;
+import com.ifortex.internship.emergencyservice.dto.response.AllergyDto;
 import com.ifortex.internship.emergencyservice.dto.request.CreateAllergyDto;
 import com.ifortex.internship.emergencyservice.model.Allergy;
 import com.ifortex.internship.emergencyservice.service.AllergyService;
