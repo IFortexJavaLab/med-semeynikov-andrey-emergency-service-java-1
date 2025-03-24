@@ -1,8 +1,8 @@
 package com.ifortex.internship.emergencyservice.service;
 
-import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomCreate;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomUpdate;
+import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.model.Symptom;
 import com.ifortex.internship.emergencyservice.repository.SymptomRepository;
 import com.ifortex.internship.emergencyservice.util.SymptomMapper;
@@ -40,7 +40,7 @@ public class SymptomService {
     @Transactional
     public void createSymptom(SymptomCreate symptomCreate) {
         String name = symptomCreate.name();
-        log.debug("Creating new symptom with name: {}",  name);
+        log.debug("Creating new symptom with name: {}", name);
 
         if (symptomRepository.findByName(symptomCreate.name()).isPresent()) {
             log.error(LOG_SYMPTOM_WITH_NAME_IS_ALREADY_EXISTS, name);

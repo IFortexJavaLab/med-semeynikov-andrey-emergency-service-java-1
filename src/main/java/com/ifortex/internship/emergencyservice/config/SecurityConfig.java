@@ -7,7 +7,6 @@ import com.ifortex.internship.medstarter.security.service.JwtTokenValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -41,13 +40,7 @@ public class SecurityConfig {
                 session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(
                 auth ->
-                    auth.requestMatchers(HttpMethod.GET, "/api/v1/allergy").permitAll()
-                        .requestMatchers("/api/v1/allergy/**").hasRole(ADMIN)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/disease").permitAll()
-                        .requestMatchers("/api/v1/disease/**").hasRole(ADMIN)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/symptom/**").permitAll()
-                        .requestMatchers("/api/v1/symptom/**").hasRole(ADMIN)
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs*/**").permitAll()
+                    auth.requestMatchers("/swagger-ui/**", "/v3/api-docs*/**").permitAll()
                         .anyRequest().authenticated())
             .exceptionHandling(
                 exception ->

@@ -1,7 +1,7 @@
 package com.ifortex.internship.emergencyservice.service;
 
-import com.ifortex.internship.emergencyservice.dto.request.AllergyIdRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CreateCustomAllergyRequest;
+import com.ifortex.internship.emergencyservice.dto.request.EntityIdRequest;
 import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.model.Allergy;
 import com.ifortex.internship.emergencyservice.model.UserAllergy;
@@ -32,19 +32,18 @@ public class UserAllergyService {
     AuthenticationFacade authenticationFacade;
     UserAllergyRepository userAllergyRepository;
 
-    public void assignAllergy(AllergyIdRequest request) {
+    public void assignAllergy(EntityIdRequest request) {
         var allergyId = request.asUUID();
         UUID userId = authenticationFacade.getAccountIdFromAuthentication();
         log.debug("Assigning allergy {} to user {}", allergyId, userId);
 
-        Allergy allergy = allergyService.getAllergyById(allergyId);
-
         boolean alreadyAssigned = userAllergyRepository.existsByUserIdAndAllergyId(userId, allergyId);
         if (alreadyAssigned) {
             log.error(LOG_ALLERGY_ALREADY_ASSIGNED, allergyId, userId);
-            throw new DuplicateResourceException(String.format("Allergy: %s already assigned", allergy.getName()));
+            throw new DuplicateResourceException(String.format("Allergy with ID: %s already assigned", allergyId));
         }
 
+        Allergy allergy = allergyService.getAllergyById(allergyId);
         UserAllergy userAllergy = new UserAllergy(userId, allergy);
         userAllergyRepository.save(userAllergy);
 
@@ -68,7 +67,7 @@ public class UserAllergyService {
     }
 
     @Transactional
-    public void unassignAllergy(AllergyIdRequest request) {
+    public void unassignAllergy(EntityIdRequest request) {
         var userAllergyId = request.asUUID();
         UUID userId = authenticationFacade.getAccountIdFromAuthentication();
 

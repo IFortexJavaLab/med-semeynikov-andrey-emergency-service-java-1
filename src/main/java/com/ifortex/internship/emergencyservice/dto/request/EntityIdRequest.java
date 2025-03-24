@@ -4,11 +4,11 @@ import com.ifortex.internship.medstarter.exception.custom.InvalidRequestExceptio
 
 import java.util.UUID;
 
-public record AllergyIdRequest(
+public record EntityIdRequest(
     @org.hibernate.validator.constraints.UUID(message = "Must be a valid symptom ID")
     String id
 ) {
-    public AllergyIdRequest {
+    public EntityIdRequest {
         try {
             UUID.fromString(id);
         } catch (IllegalArgumentException | NullPointerException e) {

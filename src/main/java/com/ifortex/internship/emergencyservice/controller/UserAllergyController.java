@@ -1,8 +1,8 @@
 package com.ifortex.internship.emergencyservice.controller;
 
-import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
-import com.ifortex.internship.emergencyservice.dto.request.AllergyIdRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CreateCustomAllergyRequest;
+import com.ifortex.internship.emergencyservice.dto.request.EntityIdRequest;
+import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.service.UserAllergyService;
 import com.ifortex.internship.medstarter.security.service.AuthenticationFacade;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,23 +29,23 @@ import java.util.List;
 @Slf4j
 @Validated
 @RestController
-@PreAuthorize("hasRole('CLIENT')")
 @RequestMapping("/api/v1/allergy")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @SecurityRequirement(name = "BearerAuth")
 @Tag(name = "User Allergy Management", description = "Operations related to managing user's allergies")
+@PreAuthorize("hasRole('CLIENT') and @subscriptionSecurity.hasActiveSubscription(authentication)")
 public class UserAllergyController {
 
     UserAllergyService userAllergyService;
-    private final AuthenticationFacade authenticationFacade;
+    AuthenticationFacade authenticationFacade;
 
     @Operation(
         summary = "Assign existing allergy to user",
         description = "Assigns a predefined allergy to the authenticated user."
     )
     @PostMapping("/assignment")
-    public ResponseEntity<Void> assignAllergy(@Valid @RequestBody AllergyIdRequest request) {
+    public ResponseEntity<Void> assignAllergy(@Valid @RequestBody EntityIdRequest request) {
         log.info("Request to assign allergy with ID: {}", request.id());
         userAllergyService.assignAllergy(request);
         log.info("Assigned allergy with ID: {}", request.id());
@@ -69,7 +69,7 @@ public class UserAllergyController {
         description = "Removes an assigned or custom allergy from the user."
     )
     @PutMapping("/unassignment")
-    public ResponseEntity<Void> unassignAllergy(@Valid @RequestBody AllergyIdRequest request) {
+    public ResponseEntity<Void> unassignAllergy(@Valid @RequestBody EntityIdRequest request) {
         log.info("Request to unassign user allergy with ID: {}", request.id());
         userAllergyService.unassignAllergy(request);
         log.info("Unassigned user allergy with ID: {}", request.id());
