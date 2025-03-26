@@ -4,6 +4,7 @@ import com.ifortex.internship.emergencyservice.dto.request.SymptomCreate;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomUpdate;
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.model.Symptom;
+import com.ifortex.internship.emergencyservice.model.constant.SymptomType;
 import com.ifortex.internship.emergencyservice.repository.SymptomRepository;
 import com.ifortex.internship.emergencyservice.util.SymptomMapper;
 import com.ifortex.internship.medstarter.exception.custom.DuplicateResourceException;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
@@ -47,17 +49,32 @@ public class SymptomService {
             throw new DuplicateResourceException(String.format("Symptom with name %s already exists.", name));
         }
 
+        SymptomType newType = symptomCreate.type();
+        Symptom parentSymptom = null;
+
+        if (symptomCreate.parentId() != null) {
+            UUID parentId = UUID.fromString(symptomCreate.parentId());
+            parentSymptom = getSymptomById(parentId);
+
+            List<Symptom> siblings = parentSymptom.getChildren();
+            for (Symptom sibling : siblings) {
+                if (!sibling.getType().equals(newType)) {
+                    log.error("Invalid input type: {} for the symptom with name: {}. Mixed input types within same level are not allowed.",
+                        symptomCreate.type(),
+                        symptomCreate.name());
+                    throw new InvalidRequestException(
+                        String.format("Invalid input type: %s. Mixed input types within same level are not allowed.", symptomCreate.type()));
+                }
+            }
+
+        }
+
         Symptom newSymptom = new Symptom()
             .setName(name)
             .setType(symptomCreate.type())
             .setAdvice(symptomCreate.advice())
-            .setAnimationKey(symptomCreate.animationKey());
-
-        if (symptomCreate.parentId() != null) {
-            UUID parentId = UUID.fromString(symptomCreate.parentId());
-            var parentSymptom = getSymptomById(parentId);
-            newSymptom.setParent(parentSymptom);
-        }
+            .setAnimationKey(symptomCreate.animationKey())
+            .setParent(parentSymptom);
 
         symptomRepository.save(newSymptom);
         log.info("Symptom with name: {} and ID: {} created successfully", name, newSymptom.getId());
@@ -81,30 +98,55 @@ public class SymptomService {
     public void updateSymptom(SymptomUpdate symptomUpdate) {
         log.debug("Attempt to update symptom with ID: {}", symptomUpdate.id());
 
-        if (symptomRepository.findByName(symptomUpdate.name()).isPresent()) {
+        Optional<Symptom> duplicate = symptomRepository.findByName(symptomUpdate.name());
+        if (duplicate.isPresent() && !duplicate.get().getId().equals(symptomUpdate.idAsUUID())) {
             log.error(LOG_SYMPTOM_WITH_NAME_IS_ALREADY_EXISTS, symptomUpdate.name());
             throw new DuplicateResourceException(String.format("Symptom with name %s already exists.", symptomUpdate.name()));
         }
 
-        Symptom savedSymptom = getSymptomById(UUID.fromString(symptomUpdate.id()));
+        Symptom savedSymptom = getSymptomById(symptomUpdate.idAsUUID());
+        SymptomType newType = symptomUpdate.type();
 
-        UUID newParentId = symptomUpdate.parentId() != null ? UUID.fromString(symptomUpdate.parentId()) : null;
-        savedSymptom.setParent(null);
+        UUID newParentId = symptomUpdate.parentId() != null ? symptomUpdate.parentIdAsUUID() : null;
+        Symptom newParent = null;
+
         if (newParentId != null) {
-            Symptom newParent = getSymptomById(newParentId);
+            newParent = getSymptomById(newParentId);
 
             if (isCircularReference(savedSymptom, newParent)) {
-                log.error("Circular reference detected! Cannot set symptom: {} as a parent of symptom {}", newParentId, savedSymptom.getId());
+                log.error("Cannot assign parent with ID: {}. Circular reference detected. Symptom to update: {}",
+                    symptomUpdate.parentId(),
+                    symptomUpdate.id());
                 throw new InvalidRequestException(
-                    String.format("Cannot set symptom: %s as a parent of symptom %s", newParentId, savedSymptom.getId()));
+                    String.format("Cannot assign parent with ID: %s. Circular reference detected. Symptom to update: %s",
+                        symptomUpdate.parentId(),
+                        symptomUpdate.id()));
             }
-            savedSymptom.setParent(newParent);
+
+            List<Symptom> siblings = newParent.getChildren().stream()
+                .filter(s -> !s.getId().equals(savedSymptom.getId()))
+                .toList();
+
+            for (Symptom sibling : siblings) {
+                if (!sibling.getType().equals(newType)) {
+                    log.error("Cannot assign to parent with ID: {}. Sibling symptoms have different type: {}. Symptom to update: {}",
+                        symptomUpdate.parentId(),
+                        symptomUpdate.type(),
+                        symptomUpdate.id());
+                    throw new InvalidRequestException(
+                        String.format("Cannot assign to parent with ID: %s. Sibling symptoms have different type: %s. Symptom to update: %s",
+                            symptomUpdate.parentId(),
+                            symptomUpdate.type(),
+                            symptomUpdate.id()));
+                }
+            }
         }
 
         savedSymptom.setName(symptomUpdate.name())
             .setAdvice(symptomUpdate.advice())
-            .setType(symptomUpdate.type())
-            .setAnimationKey(symptomUpdate.animationKey());
+            .setType(newType)
+            .setAnimationKey(symptomUpdate.animationKey())
+            .setParent(newParent);
 
         symptomRepository.save(savedSymptom);
         log.info("Symptom with ID: {} updated successfully", symptomUpdate.id());

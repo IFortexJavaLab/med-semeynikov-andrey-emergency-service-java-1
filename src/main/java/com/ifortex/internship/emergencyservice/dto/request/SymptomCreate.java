@@ -27,29 +27,4 @@ public record SymptomCreate(
     String parentId
 
 ) {
-    public SymptomCreate {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Symptom name must not be null or empty");
-        }
-
-        if (type == null) {
-            throw new IllegalArgumentException("Symptom type must not be null");
-        }
-
-        if (advice != null && (advice.isEmpty() || advice.length() > 200)) {
-            throw new IllegalArgumentException("Advice must be between 1 and 200 characters");
-        }
-
-        if (animationKey != null && (animationKey.isEmpty() || animationKey.length() > 200)) {
-            throw new IllegalArgumentException("Animation key must be between 1 and 200 characters");
-        }
-
-        if (parentId != null) {
-            try {
-                java.util.UUID.fromString(parentId);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Parent ID must be a valid UUID", e);
-            }
-        }
-    }
 }

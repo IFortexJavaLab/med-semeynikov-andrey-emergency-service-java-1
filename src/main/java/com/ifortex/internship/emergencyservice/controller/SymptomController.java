@@ -55,6 +55,8 @@ public class SymptomController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or"
+                  + " (hasRole('CLIENT') and @subscriptionSecurity.hasActiveSubscription(authentication))")
     @GetMapping
     @Operation(
         summary = "Get a list of root symptoms",
@@ -75,6 +77,8 @@ public class SymptomController {
         return ResponseEntity.ok(symptoms);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or"
+                  + " (hasRole('CLIENT') and @subscriptionSecurity.hasActiveSubscription(authentication))")
     @GetMapping("/{parentId}")
     @Operation(
         summary = "Get immediate child symptoms",
