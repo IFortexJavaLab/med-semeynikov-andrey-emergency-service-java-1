@@ -4,7 +4,6 @@ import com.ifortex.internship.emergencyservice.dto.request.CreateCustomAllergyRe
 import com.ifortex.internship.emergencyservice.dto.request.EntityIdRequest;
 import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.service.UserAllergyService;
-import com.ifortex.internship.medstarter.security.service.AuthenticationFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,7 +37,6 @@ import java.util.List;
 public class UserAllergyController {
 
     UserAllergyService userAllergyService;
-    AuthenticationFacade authenticationFacade;
 
     @Operation(
         summary = "Assign existing allergy to user",
@@ -82,8 +80,6 @@ public class UserAllergyController {
     )
     @GetMapping("/profile")
     public ResponseEntity<List<UserAllergyDto>> getUserAllergyProfile() {
-        var userid = authenticationFacade.getAccountIdFromAuthentication();
-        log.info("Request to get user allergy profile for user: {}", userid);
         List<UserAllergyDto> userAllergies = userAllergyService.getUserAllergyProfile();
         log.info("Retrieved allergy profile ({} entries)", userAllergies.size());
         return ResponseEntity.ok(userAllergies);

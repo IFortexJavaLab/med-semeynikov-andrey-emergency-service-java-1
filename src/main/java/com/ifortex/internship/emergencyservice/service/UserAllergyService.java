@@ -78,7 +78,7 @@ public class UserAllergyService {
 
     public List<UserAllergyDto> getUserAllergyProfile() {
         UUID userId = authenticationFacade.getAccountIdFromAuthentication();
-        log.debug("Fetching allergy profile for user: {}", userId);
+        log.info("Fetching allergy profile for user: {}", userId);
         return userAllergyRepository.findByUserId(userId).stream()
             .map(userAllergyMapper::toDto)
             .toList();
