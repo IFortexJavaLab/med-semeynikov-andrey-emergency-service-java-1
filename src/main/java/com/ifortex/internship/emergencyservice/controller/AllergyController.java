@@ -1,7 +1,7 @@
 package com.ifortex.internship.emergencyservice.controller;
 
-import com.ifortex.internship.emergencyservice.dto.AllergyDto;
 import com.ifortex.internship.emergencyservice.dto.request.CreateAllergyDto;
+import com.ifortex.internship.emergencyservice.dto.response.AllergyDto;
 import com.ifortex.internship.emergencyservice.model.Allergy;
 import com.ifortex.internship.emergencyservice.service.AllergyService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +16,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +39,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @SecurityRequirement(name = "BearerAuth")
 @Tag(name = "Allergy Management", description = "Operations related to managing allergies")
+@PreAuthorize("hasRole('ADMIN')")
 public class AllergyController {
 
     AllergyService allergyService;
@@ -53,6 +55,8 @@ public class AllergyController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or"
+                  + " (hasRole('CLIENT') and @subscriptionSecurity.hasActiveSubscription(authentication))")
     @GetMapping
     @Operation(
         summary = "Get a list of allergies",

@@ -1,4 +1,4 @@
-package com.ifortex.internship.emergencyservice.dto;
+package com.ifortex.internship.emergencyservice.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.ifortex.internship.emergencyservice.model.constant.SymptomType;

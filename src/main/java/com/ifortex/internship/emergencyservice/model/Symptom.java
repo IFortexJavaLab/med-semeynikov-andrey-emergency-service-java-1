@@ -47,6 +47,7 @@ public class Symptom {
     String name;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     SymptomType type;
 
     @Column(columnDefinition = "TEXT")

@@ -1,8 +1,8 @@
 package com.ifortex.internship.emergencyservice.controller;
 
-import com.ifortex.internship.emergencyservice.dto.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomCreate;
 import com.ifortex.internship.emergencyservice.dto.request.SymptomUpdate;
+import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.service.SymptomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -39,6 +39,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @SecurityRequirement(name = "BearerAuth")
 @Tag(name = "Symptom Management", description = "Operations related to managing symptoms")
+@PreAuthorize("hasRole('ADMIN')")
 public class SymptomController {
 
     SymptomService symptomService;
@@ -54,6 +55,8 @@ public class SymptomController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or"
+                  + " (hasRole('CLIENT') and @subscriptionSecurity.hasActiveSubscription(authentication))")
     @GetMapping
     @Operation(
         summary = "Get a list of root symptoms",
@@ -74,6 +77,8 @@ public class SymptomController {
         return ResponseEntity.ok(symptoms);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or"
+                  + " (hasRole('CLIENT') and @subscriptionSecurity.hasActiveSubscription(authentication))")
     @GetMapping("/{parentId}")
     @Operation(
         summary = "Get immediate child symptoms",

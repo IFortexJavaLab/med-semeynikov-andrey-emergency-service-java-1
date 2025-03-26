@@ -1,13 +1,12 @@
 package com.ifortex.internship.emergencyservice.service;
 
-import com.ifortex.internship.emergencyservice.dto.DiseaseDto;
 import com.ifortex.internship.emergencyservice.dto.request.CreateDiseaseDto;
+import com.ifortex.internship.emergencyservice.dto.response.DiseaseDto;
 import com.ifortex.internship.emergencyservice.model.Disease;
 import com.ifortex.internship.emergencyservice.repository.DiseaseRepository;
 import com.ifortex.internship.emergencyservice.util.DiseaseMapper;
 import com.ifortex.internship.medstarter.exception.custom.DuplicateResourceException;
 import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
-import com.ifortex.internship.medstarter.exception.custom.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -27,18 +26,12 @@ import java.util.UUID;
 public class DiseaseService {
 
     public static final String LOG_DISEASE_WITH_NAME_IS_ALREADY_EXISTS = "Disease with name : {} is already exists";
-    public static final String LOG_DISEASE_NAME_IS_NULL_OR_BLANK = "Disease name is null or blank";
 
     DiseaseRepository diseaseRepository;
     DiseaseMapper diseaseMapper;
 
     public void createDisease(CreateDiseaseDto createDiseaseDto) {
         String name = createDiseaseDto.name();
-
-        if (name == null || name.isBlank()) {
-            log.error(LOG_DISEASE_NAME_IS_NULL_OR_BLANK);
-            throw new InvalidRequestException("Disease name must not be null or blank");
-        }
         log.debug("Creating new disease with name: {}", name);
 
         if (diseaseRepository.findByName(name).isPresent()) {
@@ -59,11 +52,6 @@ public class DiseaseService {
 
     public void updateDisease(DiseaseDto disease) {
         log.debug("Attempt to update disease with ID: {}", disease.id());
-
-        if (disease.name() == null || disease.name().isBlank()) {
-            log.error(LOG_DISEASE_NAME_IS_NULL_OR_BLANK);
-            throw new InvalidRequestException(String.format("Disease name must not be null or blank. Disease with ID: %s", disease.id()));
-        }
 
         if (diseaseRepository.findByName(disease.name()).isPresent()) {
             log.error(LOG_DISEASE_WITH_NAME_IS_ALREADY_EXISTS, disease.name());

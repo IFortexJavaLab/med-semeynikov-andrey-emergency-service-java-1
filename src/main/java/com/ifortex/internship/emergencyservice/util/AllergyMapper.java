@@ -1,6 +1,6 @@
 package com.ifortex.internship.emergencyservice.util;
 
-import com.ifortex.internship.emergencyservice.dto.AllergyDto;
+import com.ifortex.internship.emergencyservice.dto.response.AllergyDto;
 import com.ifortex.internship.emergencyservice.model.Allergy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
