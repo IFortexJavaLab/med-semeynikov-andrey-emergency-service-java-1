@@ -7,9 +7,9 @@ import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyLocation;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencySymptom;
+import com.ifortex.internship.emergencyservice.repository.EmergencyLocationRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencySymptomRepository;
-import com.ifortex.internship.emergencyservice.repository.LocationRepository;
 import com.ifortex.internship.emergencyservice.repository.SymptomRepository;
 import com.ifortex.internship.medstarter.exception.custom.InvalidRequestException;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
@@ -32,49 +32,65 @@ import java.util.UUID;
 public class ClientEmergencyService {
 
     SymptomRepository symptomRepository;
-    LocationRepository locationRepository;
     EmergencyRepository emergencyRepository;
+    ParamedicSearchService paramedicSearchService;
     EmergencySymptomRepository emergencySymptomRepository;
+    EmergencyLocationRepository emergencyLocationRepository;
 
     @Transactional
     public void createEmergency(CreateEmergencyRequest request, UserDetailsImpl client) {
-        UUID clientAccountId = client.getAccountId();
+        UUID clientId = client.getAccountId();
 
-        boolean hasOngoingEmergencies = emergencyRepository.existsByClientIdAndStatus(clientAccountId, EmergencyStatus.ONGOING);
+        boolean hasOngoingEmergencies = emergencyRepository.existsByClientIdAndStatus(clientId, EmergencyStatus.ONGOING);
         if (hasOngoingEmergencies) {
-            log.error("Client with ID: {} tries to create another emergency while has emergency with status: {}",
-                clientAccountId,
-                EmergencyStatus.ONGOING);
+            log.error("Client {} already has an ongoing emergency", clientId);
             throw new InvalidRequestException("You already have an ongoing emergency.");
         }
 
-        log.debug("Creating emergency for user: {}", clientAccountId);
+        log.info("Creating emergency for user: {}", clientId);
 
-        Emergency emergency = new Emergency();
-        emergency.setClientId(clientAccountId);
-        emergency.setStatus(EmergencyStatus.ONGOING);
+        Emergency emergency = new Emergency()
+            .setClientId(clientId)
+            .setStatus(EmergencyStatus.ONGOING);
         emergency = emergencyRepository.save(emergency);
 
-        EmergencyLocation location = new EmergencyLocation();
-        location.setEmergency(emergency);
-        location.setLocationType(EmergencyLocationType.INITIATOR);
-        location.setLatitude(request.latitude());
-        location.setLongitude(request.longitude());
-        locationRepository.save(location);
+        EmergencyLocation location = new EmergencyLocation()
+            .setEmergency(emergency)
+            .setLocationType(EmergencyLocationType.INITIATOR)
+            .setLatitude(request.latitude())
+            .setLongitude(request.longitude());
 
-        Set<UUID> uniqueSymptoms = new HashSet<>(request.symptoms());
-        List<Symptom> symptomsWithParents = symptomRepository.findAllWithParentsRecursively(uniqueSymptoms);
+        emergencyLocationRepository.save(location);
+        emergency.getLocations().add(location);
 
-        for (Symptom symptom : symptomsWithParents) {
-            EmergencySymptom es = new EmergencySymptom();
-            es.setEmergency(emergency);
-            es.setSymptom(symptom);
+        log.debug("Emergency [{}] location set: lat={}, lon={}", emergency.getId(), location.getLatitude(), location.getLongitude());
+
+        assignSymptomsToEmergency(emergency, request.symptoms());
+
+        //todo create a Snapshot
+
+        log.info("Emergency wit ID: {} created successfully", emergency.getId());
+
+        log.info("Emergency [{}] created successfully. Initiating paramedic search...", emergency.getId());
+        paramedicSearchService.findParamedicForEmergency(emergency);
+    }
+
+    private void assignSymptomsToEmergency(Emergency emergency, List<UUID> symptomIds) {
+        if (symptomIds == null || symptomIds.isEmpty()) {
+            log.warn("No symptoms provided for emergency: {}", emergency.getId());
+            return;
+        }
+
+        Set<UUID> uniqueSymptomIds = new HashSet<>(symptomIds);
+        List<Symptom> symptoms = symptomRepository.findAllWithParentsRecursively(uniqueSymptomIds);
+
+        for (Symptom symptom : symptoms) {
+            EmergencySymptom es = new EmergencySymptom()
+                .setEmergency(emergency)
+                .setSymptom(symptom);
             emergencySymptomRepository.save(es);
         }
 
-        //todo create Snapshot
-
-        log.info("Emergency [{}] created with {} symptoms", emergency.getId(), symptomsWithParents.size());
-        // todo initiate search
+        log.debug("Assigned {} symptoms (with parents) to emergency [{}]", symptoms.size(), emergency.getId());
     }
 }
