@@ -72,7 +72,7 @@ public class SymptomController {
         int size
     ) {
         log.info("Request to get root symptoms. Page: {}, size: {}", page, size);
-        List<SymptomDto> symptoms = symptomService.getAllRootSymptoms(page, size);
+        List<SymptomDto> symptoms = symptomService.getRootSymptoms(page, size);
         log.info("Retrieved symptoms ({} records)", symptoms.size());
         return ResponseEntity.ok(symptoms);
     }
@@ -93,6 +93,20 @@ public class SymptomController {
         List<SymptomDto> symptoms = symptomService.getChildSymptoms(parentId, page, size);
         log.info("Retrieved child symptoms for symptom: {}. ({} records)", parentId, symptoms.size());
         return ResponseEntity.ok(symptoms);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or"
+                  + " (hasRole('CLIENT') and @subscriptionSecurity.hasActiveSubscription(authentication))")
+    @GetMapping("/{symptomId}/details")
+    @Operation(
+        summary = "Get symptom by id",
+        description = "Retrieves a detailed information about symptom. "
+    )
+    public ResponseEntity<SymptomDto> getSymptom(@PathVariable UUID symptomId) {
+        log.info("Request to get symptom [{}]", symptomId);
+        SymptomDto symptom = symptomService.getSymptomDto(symptomId);
+        log.info("Retrieved symptom: [{}]", symptomId);
+        return ResponseEntity.ok(symptom);
     }
 
     @PutMapping

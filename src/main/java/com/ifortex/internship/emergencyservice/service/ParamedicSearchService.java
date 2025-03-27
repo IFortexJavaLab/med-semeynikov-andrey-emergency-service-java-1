@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -32,8 +33,13 @@ import java.util.Optional;
 public class ParamedicSearchService {
 
     static final int MAX_ATTEMPTS = 3;
+    // todo uncomment
     static final Duration BASE_DELAY = Duration.ofMinutes(1);
+    // todo uncomment
     static final Duration EXTENDED_SEARCH_DURATION = Duration.ofMinutes(20);
+
+    //static final Duration BASE_DELAY = Duration.ofSeconds(1);
+    //static final Duration EXTENDED_SEARCH_DURATION = Duration.ofSeconds(1);
 
     EmergencyRepository emergencyRepository;
     ParamedicLocationRepository paramedicLocationRepository;
@@ -42,12 +48,13 @@ public class ParamedicSearchService {
 
     @Value("${app.default_radius_km}") double defaultRadius;
 
+    @Async
     @Transactional
     public void findParamedicForEmergency(Emergency emergency) {
         BigDecimal latitude = getLatitude(emergency);
         BigDecimal longitude = getLongitude(emergency);
 
-        log.info("Starting paramedic search for emergency: {}, location: ({}, {})", emergency.getId(), latitude, longitude);
+        log.info("Starting paramedic search for emergency [{}], location: ({}, {})", emergency.getId(), latitude, longitude);
 
         double radius = defaultRadius;
 
@@ -65,10 +72,10 @@ public class ParamedicSearchService {
 
         radius *= 2;
         Instant timeout = Instant.now().plus(EXTENDED_SEARCH_DURATION);
-        log.info("Switching to extended search. Radius increased to {}", radius);
+        log.info("Switching to extended search. Radius increased to {}. Emergency [{}]", radius, emergency.getId());
 
         while (Instant.now().isBefore(timeout)) {
-            log.debug("Extended search: trying to find paramedic within radius {} km", radius);
+            log.debug("Extended search: trying to find paramedic within radius {} km. Emergency [{}]", radius, emergency.getId());
             Optional<ParamedicLocation> found = paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius);
             if (found.isPresent()) {
                 log.info("Paramedic {} found during extended search", found.get().getParamedicId());
@@ -83,7 +90,8 @@ public class ParamedicSearchService {
 
         // todo notificationService.notifyReserveTeam(emergency);
 
-        log.info("Emergency {} resolved by reserve team. No paramedic found in {} minutes", emergency.getId(), EXTENDED_SEARCH_DURATION.toMinutes());
+        log.info("Emergency [{}] resolved by reserve team. No paramedic found in {} minutes", emergency.getId(),
+            EXTENDED_SEARCH_DURATION.toMinutes());
     }
 
     private void assign(ParamedicLocation paramedicLocation, Emergency emergency) {
@@ -129,7 +137,6 @@ public class ParamedicSearchService {
     }
 
     private BigDecimal getLatitude(Emergency emergency) {
-        log.debug("");
         return emergency.getLocations().stream()
             .filter(loc -> loc.getLocationType() == EmergencyLocationType.INITIATOR)
             .findFirst()

@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS emergency_feedback
 
 CREATE TABLE IF NOT EXISTS emergency_location
 (
-    id            UUID PRIMARY KEY,
+    id            BIGSERIAL PRIMARY KEY,
     emergency_id  UUID                                      NOT NULL,
     location_type VARCHAR(50)                               NOT NULL,
     latitude      NUMERIC(10, 6)                            NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS emergency_location
 
 CREATE TABLE IF NOT EXISTS emergency_symptom
 (
-    id           UUID PRIMARY KEY,
+    id           BIGSERIAL PRIMARY KEY,
     emergency_id UUID                                      NOT NULL,
     symptom_id   UUID                                      NOT NULL,
     updated_at   TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS emergency_symptom
 
 CREATE TABLE IF NOT EXISTS emergency_assignment
 (
-    id           UUID PRIMARY KEY,
+    id           BIGSERIAL PRIMARY KEY,
     emergency_id UUID                                      NOT NULL,
     paramedic_id UUID                                      NOT NULL,
     assigned_at  TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,

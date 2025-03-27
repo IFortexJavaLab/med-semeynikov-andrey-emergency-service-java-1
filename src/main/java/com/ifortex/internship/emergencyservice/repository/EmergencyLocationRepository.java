@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 @Repository
-public interface EmergencyLocationRepository extends JpaRepository<EmergencyLocation, UUID> {
+public interface EmergencyLocationRepository extends JpaRepository<EmergencyLocation, Long> {
 
     void deleteByEmergencyIdAndLocationType(UUID id, EmergencyLocationType emergencyLocationType);
 }

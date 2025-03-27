@@ -80,7 +80,7 @@ public class SymptomService {
         log.info("Symptom with name: {} and ID: {} created successfully", name, newSymptom.getId());
     }
 
-    public List<SymptomDto> getAllRootSymptoms(int page, int size) {
+    public List<SymptomDto> getRootSymptoms(int page, int size) {
         log.debug("Fetching root symptoms. Page: {}, Size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
         Page<Symptom> rootSymptoms = symptomRepository.findByParentIsNull(pageable);
@@ -172,6 +172,11 @@ public class SymptomService {
         Pageable pageable = PageRequest.of(page, size);
         Page<Symptom> potentialParents = symptomRepository.findByIdNotIn(descendants, pageable);
         return symptomMapper.toListDtos(potentialParents.stream().toList());
+    }
+
+    public SymptomDto getSymptomDto(UUID symptomId) {
+        log.debug("Fetching symptom: [{}]", symptomId);
+        return symptomMapper.toDto(getSymptomById(symptomId));
     }
 
     public Symptom getSymptomById(UUID symptomId) {
