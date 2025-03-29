@@ -36,8 +36,9 @@ public interface EmergencySnapshotMapper {
             .orElse(null);
     }
 
+    //todo refactor
     @Named("buildSymptomTree")
-    static List<EmergencySymptomListDto> buildSymptomTree(List<SymptomDto> flatList) {
+    default List<EmergencySymptomListDto> buildSymptomTree(List<SymptomDto> flatList) {
         if (flatList == null) {
             return List.of();
         }

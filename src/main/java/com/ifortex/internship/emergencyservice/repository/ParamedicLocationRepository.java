@@ -40,4 +40,7 @@ public interface ParamedicLocationRepository extends JpaRepository<ParamedicLoca
         @Param("lon") BigDecimal longitude,
         @Param("radius") double radiusInKm
     );
+
+    //todo and index
+    // add constraint on emergency assigment
 }

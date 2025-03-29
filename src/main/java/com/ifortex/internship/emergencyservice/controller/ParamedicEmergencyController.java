@@ -44,5 +44,6 @@ public class ParamedicEmergencyController {
         log.info("Paramedic [{}] requested their assigned emergency", paramedicId);
         ParamedicEmergencyViewDto emergency = emergencyService.getAssignedEmergency(paramedicId);
         return ResponseEntity.ok(Objects.requireNonNullElse(emergency, "You don't have an ongoing emergency"));
+        //todo no content
     }
 }

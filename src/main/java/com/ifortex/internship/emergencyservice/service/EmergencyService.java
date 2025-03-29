@@ -130,7 +130,7 @@ public class EmergencyService {
             log.info("No symptoms found in the current emergency for client: {}", clientId);
             return Collections.emptyList();
         }
-        var symptomTree = EmergencySnapshotMapper.buildSymptomTree(symptoms);
+        var symptomTree = emergencySnapshotMapper.buildSymptomTree(symptoms);
         log.debug("Fetched all symptoms for client: {}", clientId);
         return symptomTree;
     }
@@ -210,6 +210,7 @@ public class EmergencyService {
     public ParamedicEmergencyViewDto getAssignedEmergency(UUID paramedicId) {
         log.debug("Fetching assigned emergency for paramedic {}", paramedicId);
 
+        //todo return optional
         EmergencySnapshot emergencySnapshot = emergencySnapshotRepository
             .findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)
             .orElse(null);
