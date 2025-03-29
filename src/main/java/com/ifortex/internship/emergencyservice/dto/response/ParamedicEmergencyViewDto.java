@@ -17,11 +17,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EmergencyDto {
-    UUID id;
-    UUID clientId;
-    EmergencyStatus status;
+public class ParamedicEmergencyViewDto {
+
+    String id;
     Instant createdAt;
+    Instant closedAt;
+    EmergencyStatus status;
+    UUID clientId;
+    UUID paramedicId;
     LocationDto initiatorLocation;
     List<EmergencySymptomListDto> symptoms;
     List<UserDiseaseDto> userDiseases;

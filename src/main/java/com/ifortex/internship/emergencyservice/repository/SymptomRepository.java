@@ -36,4 +36,15 @@ public interface SymptomRepository extends JpaRepository<Symptom, UUID> {
         SELECT * FROM symptom_tree
         """, nativeQuery = true)
     List<Symptom> findAllWithParentsRecursively(@Param("ids") Set<UUID> ids);
+
+    @Query(value = """
+    WITH RECURSIVE symptom_tree AS (
+        SELECT * FROM symptoms WHERE id IN (:ids)
+        UNION
+        SELECT s.* FROM symptoms s
+        JOIN symptom_tree st ON s.parent_id = st.id
+    )
+    SELECT * FROM symptom_tree
+    """, nativeQuery = true)
+    List<Symptom> findAllChildrenRecursively(@Param("ids") Set<UUID> ids);
 }

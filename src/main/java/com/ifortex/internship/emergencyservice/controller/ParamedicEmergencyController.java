@@ -1,6 +1,6 @@
 package com.ifortex.internship.emergencyservice.controller;
 
-import com.ifortex.internship.emergencyservice.dto.response.EmergencyDto;
+import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
 import com.ifortex.internship.emergencyservice.service.EmergencyService;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,7 +42,7 @@ public class ParamedicEmergencyController {
     public ResponseEntity<?> getAssignedEmergency(@AuthenticationPrincipal UserDetailsImpl paramedic) {
         UUID paramedicId = paramedic.getAccountId();
         log.info("Paramedic [{}] requested their assigned emergency", paramedicId);
-        EmergencyDto emergency = emergencyService.getAssignedEmergency(paramedicId);
+        ParamedicEmergencyViewDto emergency = emergencyService.getAssignedEmergency(paramedicId);
         return ResponseEntity.ok(Objects.requireNonNullElse(emergency, "You don't have an ongoing emergency"));
     }
 }

@@ -19,8 +19,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,7 +44,7 @@ public class ClientEmergencyController {
     @PostMapping
     public ResponseEntity<Void> createEmergency(@Valid @RequestBody CreateEmergencyRequest request,
                                                 @AuthenticationPrincipal UserDetailsImpl client) {
-        log.info("Request to initiate emergency for user: {}", client.getAccountId());
+        log.info("Request to initiate emergency for client [{}]", client.getAccountId());
         emergencyService.createEmergency(request, client);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -57,23 +57,32 @@ public class ClientEmergencyController {
     public ResponseEntity<List<EmergencySymptomListDto>> getSymptomsForCurrentEmergency(@AuthenticationPrincipal UserDetailsImpl client) {
         log.info("Request to get symptom tree for current emergency by user: [{}]", client.getAccountId());
         List<EmergencySymptomListDto> symptomsTree = emergencyService.getSymptomsForCurrentEmergency(client);
-        log.info("Returned {} root symptoms for user's emergency", symptomsTree.size());
         return ResponseEntity.ok(symptomsTree);
     }
 
     @Operation(
-        summary = "Replace symptoms for current emergency",
-        description = "Fully replaces the list of symptoms associated with the current ongoing emergency."
+        summary = "Append symptoms to current emergency",
+        description = "Adds the specified symptoms and their respective child symptoms to the current ongoing emergency without replacing existing ones."
     )
-    @PutMapping("/current/symptoms/add")
+    @PatchMapping("/current/symptoms/add")
     public ResponseEntity<Void> addSymptomsForCurrentEmergency(@Valid @RequestBody UpdateEmergencySymptomsRequest request,
                                                                @AuthenticationPrincipal UserDetailsImpl client) {
         log.info("User [{}] requests to update symptoms for current emergency", client.getAccountId());
         emergencyService.addSymptomsForCurrentEmergency(request, client);
-        log.info("Symptoms updated successfully for current emergency");
+        log.info("Symptoms updated successfully for current emergency for user: {}", client.getAccountId());
         return ResponseEntity.noContent().build();
     }
 
-    //todo add endpoint to delete symptom from current emergency
-
+    @Operation(
+        summary = "Remove symptoms from current emergency",
+        description = "Removes the specified symptoms and all their child symptoms from the current ongoing emergency."
+    )
+    @PatchMapping("/current/symptoms/delete")
+    public ResponseEntity<Void> deleteSymptomsForCurrentEmergency(@Valid @RequestBody UpdateEmergencySymptomsRequest request,
+                                                                  @AuthenticationPrincipal UserDetailsImpl client) {
+        log.info("User [{}] requests to remove symptoms for current emergency", client.getAccountId());
+        emergencyService.deleteSymptomsForCurrentEmergency(request, client);
+        log.info("Symptoms removed successfully for current emergency for user: {}", client.getAccountId());
+        return ResponseEntity.noContent().build();
+    }
 }

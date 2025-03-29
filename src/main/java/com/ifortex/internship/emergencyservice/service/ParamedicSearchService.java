@@ -6,10 +6,16 @@ import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyAssignment;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyLocation;
+import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyAssignmentSnapshot;
+import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
 import com.ifortex.internship.emergencyservice.repository.EmergencyAssignmentRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyLocationRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
+import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.ParamedicLocationRepository;
+import com.ifortex.internship.emergencyservice.util.EmergencyAssignmentMapper;
+import com.ifortex.internship.emergencyservice.util.EmergencyLocationMapper;
+import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
 import com.ifortex.internship.medstarter.exception.custom.InternalServiceException;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
@@ -23,8 +29,10 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -33,18 +41,16 @@ import java.util.Optional;
 public class ParamedicSearchService {
 
     static final int MAX_ATTEMPTS = 3;
-    // todo uncomment
     static final Duration BASE_DELAY = Duration.ofMinutes(1);
-    // todo uncomment
     static final Duration EXTENDED_SEARCH_DURATION = Duration.ofMinutes(20);
 
-    //static final Duration BASE_DELAY = Duration.ofSeconds(1);
-    //static final Duration EXTENDED_SEARCH_DURATION = Duration.ofSeconds(1);
-
     EmergencyRepository emergencyRepository;
+    EmergencyLocationMapper emergencyLocationMapper;
+    EmergencyAssignmentMapper emergencyAssignmentMapper;
+    EmergencySnapshotRepository emergencySnapshotRepository;
     ParamedicLocationRepository paramedicLocationRepository;
-    EmergencyAssignmentRepository emergencyAssignmentRepository;
     EmergencyLocationRepository emergencyLocationRepository;
+    EmergencyAssignmentRepository emergencyAssignmentRepository;
 
     @Value("${app.default_radius_km}") double defaultRadius;
 
@@ -57,7 +63,6 @@ public class ParamedicSearchService {
         log.info("Starting paramedic search for emergency [{}], location: ({}, {})", emergency.getId(), latitude, longitude);
 
         double radius = defaultRadius;
-
         for (int i = 0; i < MAX_ATTEMPTS; i++) {
             log.debug("Attempt {}: searching paramedic within radius {} km", i + 1, radius);
             Optional<ParamedicLocation> found = paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius);
@@ -88,6 +93,15 @@ public class ParamedicSearchService {
         emergency.setStatus(EmergencyStatus.RESERVE_HANDLED);
         emergencyRepository.save(emergency);
 
+        var emergencySnapshot = emergencySnapshotRepository.findById(emergency.getId().toString())
+            .orElseThrow(() -> {
+                log.error("Emergency [{}] not found", emergency.getId());
+                return new EntityNotFoundException(String.format("Emergency [%s] not found", emergency.getId()));
+            });
+
+        emergencySnapshot.setStatus(emergency.getStatus()).setClosedAt(Instant.now());
+        emergencySnapshotRepository.save(emergencySnapshot);
+
         // todo notificationService.notifyReserveTeam(emergency);
 
         log.info("Emergency [{}] resolved by reserve team. No paramedic found in {} minutes", emergency.getId(),
@@ -95,27 +109,73 @@ public class ParamedicSearchService {
     }
 
     private void assign(ParamedicLocation paramedicLocation, Emergency emergency) {
-        log.info("Assigning paramedic {} to emergency {}", paramedicLocation.getParamedicId(), emergency.getId());
+        UUID paramedicId = paramedicLocation.getParamedicId();
+        UUID emergencyId = emergency.getId();
+        log.info("Assigning paramedic {} to emergency {}", paramedicId, emergencyId);
 
+        updateEmergencyWithParamedic(paramedicLocation, emergency);
+        EmergencyAssignment assignment = createAndSaveAssignment(paramedicLocation, emergency);
+        List<EmergencyLocation> emergencyLocations = createAndSaveEmergencyLocations(paramedicLocation, emergency);
+        updateEmergencySnapshot(emergency, assignment, emergencyLocations);
+
+        //todo: notificationService.notifyParamedic(paramedicId, emergency);
+
+        log.info("Paramedic {} assigned to emergency {} with accepted and current location saved", paramedicId, emergencyId);
+    }
+
+    private void updateEmergencyWithParamedic(ParamedicLocation paramedicLocation, Emergency emergency) {
+        log.debug("Deleting existing PARAMEDIC_CURRENT locations for emergency {}", emergency.getId());
         emergencyLocationRepository.deleteByEmergencyIdAndLocationType(emergency.getId(), EmergencyLocationType.PARAMEDIC_CURRENT);
+
         emergency.setParamedicId(paramedicLocation.getParamedicId());
         emergencyRepository.save(emergency);
+        log.debug("Updated emergency {} with paramedic {}", emergency.getId(), paramedicLocation.getParamedicId());
+    }
 
+    private EmergencyAssignment createAndSaveAssignment(ParamedicLocation paramedicLocation, Emergency emergency) {
+        log.debug("Creating assignment for paramedic {} and emergency {}", paramedicLocation.getParamedicId(), emergency.getId());
         EmergencyAssignment assignment = new EmergencyAssignment()
             .setParamedicId(paramedicLocation.getParamedicId())
             .setEmergency(emergency);
         emergencyAssignmentRepository.save(assignment);
+        log.debug("Assignment created for emergency {} with id {}", emergency.getId(), assignment.getId());
+        return assignment;
+    }
 
-        emergencyLocationRepository.saveAll(List.of(
+    private List<EmergencyLocation> createAndSaveEmergencyLocations(ParamedicLocation paramedicLocation, Emergency emergency) {
+        log.debug("Building emergency locations for paramedic {} and emergency {}", paramedicLocation.getParamedicId(), emergency.getId());
+        List<EmergencyLocation> emergencyLocations = List.of(
             buildEmergencyLocation(emergency, paramedicLocation, EmergencyLocationType.PARAMEDIC_ACCEPTED),
             buildEmergencyLocation(emergency, paramedicLocation, EmergencyLocationType.PARAMEDIC_CURRENT)
-        ));
+        );
+        emergencyLocationRepository.saveAll(emergencyLocations);
+        log.debug("Saved {} emergency locations for emergency {}", emergencyLocations.size(), emergency.getId());
+        return emergencyLocations;
+    }
 
-        //todo notificationService.notifyParamedic(paramedicId, emergency);
+    private void updateEmergencySnapshot(Emergency emergency, EmergencyAssignment assignment, List<EmergencyLocation> emergencyLocations) {
+        log.debug("Fetching snapshot for emergency {}", emergency.getId());
+        EmergencySnapshot snapshot = emergencySnapshotRepository.findById(emergency.getId().toString())
+            .orElseThrow(() -> {
+                log.error("Emergency [{}] snapshot not found", emergency.getId());
+                return new EntityNotFoundException("Emergency snapshot not found");
+            });
+        log.debug("Updating snapshot for emergency {} with paramedic {}", emergency.getId(), emergency.getParamedicId());
+        snapshot.setParamedicId(emergency.getParamedicId());
 
-        log.info("Paramedic {} assigned to emergency {} with accepted and current location saved",
-            paramedicLocation.getParamedicId(),
-            emergency.getId());
+        EmergencyAssignmentSnapshot assignmentSnapshot = emergencyAssignmentMapper.toSnapshot(assignment);
+        if (snapshot.getAssignments() == null) {
+            snapshot.setAssignments(new ArrayList<>());
+        }
+        snapshot.getAssignments().add(assignmentSnapshot);
+        log.debug("Added assignment snapshot for paramedic {} to emergency {}", assignment.getParamedicId(), emergency.getId());
+        snapshot.getLocations().removeIf(location -> location.getLocationType() == EmergencyLocationType.PARAMEDIC_CURRENT);
+
+        var snapshotLocations = emergencyLocationMapper.toList(emergencyLocations);
+        snapshot.getLocations().addAll(snapshotLocations);
+
+        emergencySnapshotRepository.save(snapshot);
+        log.debug("Snapshot for emergency {} updated successfully", emergency.getId());
     }
 
     private EmergencyLocation buildEmergencyLocation(Emergency emergency,

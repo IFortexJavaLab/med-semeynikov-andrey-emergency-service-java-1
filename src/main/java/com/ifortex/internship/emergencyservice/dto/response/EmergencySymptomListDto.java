@@ -11,6 +11,8 @@ public record EmergencySymptomListDto(
     UUID id,
     String name,
     SymptomType type,
+    String advice,
+    String animationKey,
     UUID parentId,
     List<EmergencySymptomListDto> children) {
 }

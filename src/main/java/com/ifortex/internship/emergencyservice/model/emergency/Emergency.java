@@ -59,9 +59,6 @@ public class Emergency {
     List<EmergencyLocation> locations = new ArrayList<>();
 
     @OneToMany(mappedBy = "emergency", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<EmergencySymptom> symptoms = new ArrayList<>();
-
-    @OneToMany(mappedBy = "emergency", cascade = CascadeType.ALL, orphanRemoval = true)
     List<EmergencyAssignment> assignments = new ArrayList<>();
 
     @OneToMany(mappedBy = "emergency", cascade = CascadeType.ALL, orphanRemoval = true)
