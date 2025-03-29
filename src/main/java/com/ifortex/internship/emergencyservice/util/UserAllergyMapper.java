@@ -6,11 +6,15 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+import java.util.List;
+
 @Mapper(componentModel = "spring")
 public interface UserAllergyMapper {
 
     @Mapping(target = "name", source = ".", qualifiedByName = "resolveAllergyName")
     UserAllergyDto toDto(UserAllergy entity);
+
+    List<UserAllergyDto> toDtoList(List<UserAllergy> entities);
 
     @Named("resolveAllergyName")
     static String resolveAllergyName(UserAllergy entity) {

@@ -6,11 +6,15 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+import java.util.List;
+
 @Mapper(componentModel = "spring")
 public interface UserDiseaseMapper {
 
     @Mapping(target = "name", source = ".", qualifiedByName = "resolveDiseaseByName")
     UserDiseaseDto toDto(UserDisease entity);
+
+    List<UserDiseaseDto> toDtoList(List<UserDisease> diseases);
 
     @Named("resolveDiseaseByName")
     static String resolveDiseaseByName(UserDisease entity) {
