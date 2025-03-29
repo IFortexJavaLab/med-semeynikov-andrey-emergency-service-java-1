@@ -15,18 +15,4 @@ public record AllergyDto(
     String name
 
 ) {
-    public AllergyDto {
-        if (id == null) {
-            throw new IllegalArgumentException("Disease ID must not be null");
-        }
-        try {
-            java.util.UUID.fromString(id);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Disease ID must be a valid UUID", e);
-        }
-
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Disease name must not be null or empty");
-        }
-    }
 }
