@@ -4,6 +4,7 @@ import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyReques
 import com.ifortex.internship.emergencyservice.dto.request.UpdateEmergencySymptomsRequest;
 import com.ifortex.internship.emergencyservice.dto.response.EmergencySymptomListDto;
 import com.ifortex.internship.emergencyservice.service.EmergencyService;
+import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -39,6 +40,7 @@ import java.util.List;
 public class ClientEmergencyController {
 
     EmergencyService emergencyService;
+    EmergencySnapshotService emergencySnapshotService;
 
     @Operation(summary = "Trigger new emergency", description = "Creates a new emergency and starts paramedic search flow.")
     @PostMapping
@@ -56,7 +58,7 @@ public class ClientEmergencyController {
     @GetMapping("/current/symptoms")
     public ResponseEntity<List<EmergencySymptomListDto>> getSymptomsForCurrentEmergency(@AuthenticationPrincipal UserDetailsImpl client) {
         log.info("Request to get symptom tree for current emergency by user: [{}]", client.getAccountId());
-        List<EmergencySymptomListDto> symptomsTree = emergencyService.getSymptomsForCurrentEmergency(client);
+        List<EmergencySymptomListDto> symptomsTree = emergencySnapshotService.getSymptomsForCurrentEmergency(client.getAccountId());
         return ResponseEntity.ok(symptomsTree);
     }
 
@@ -68,7 +70,7 @@ public class ClientEmergencyController {
     public ResponseEntity<Void> addSymptomsForCurrentEmergency(@Valid @RequestBody UpdateEmergencySymptomsRequest request,
                                                                @AuthenticationPrincipal UserDetailsImpl client) {
         log.info("User [{}] requests to update symptoms for current emergency", client.getAccountId());
-        emergencyService.addSymptomsForCurrentEmergency(request, client);
+        emergencySnapshotService.addSymptomsForCurrentEmergency(request, client.getAccountId());
         log.info("Symptoms updated successfully for current emergency for user: {}", client.getAccountId());
         return ResponseEntity.noContent().build();
     }
@@ -81,7 +83,7 @@ public class ClientEmergencyController {
     public ResponseEntity<Void> deleteSymptomsForCurrentEmergency(@Valid @RequestBody UpdateEmergencySymptomsRequest request,
                                                                   @AuthenticationPrincipal UserDetailsImpl client) {
         log.info("User [{}] requests to remove symptoms for current emergency", client.getAccountId());
-        emergencyService.deleteSymptomsForCurrentEmergency(request, client);
+        emergencySnapshotService.deleteSymptomsForCurrentEmergency(request, client.getAccountId());
         log.info("Symptoms removed successfully for current emergency for user: {}", client.getAccountId());
         return ResponseEntity.noContent().build();
     }

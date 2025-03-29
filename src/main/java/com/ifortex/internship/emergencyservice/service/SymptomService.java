@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.UUID;
 public class SymptomService {
 
     public static final String LOG_SYMPTOM_WITH_NAME_IS_ALREADY_EXISTS = "Symptom with name : {} is already exists";
+    public static final String EXCEPTION_NO_SYMPTOMS_PROVIDED_FOR_EMERGENCY = "No symptoms provided for emergency: {}";
 
     SymptomMapper symptomMapper;
     SymptomRepository symptomRepository;
@@ -186,6 +188,25 @@ public class SymptomService {
                 log.error("Symptom with ID {} not found", symptomId);
                 return new EntityNotFoundException(String.format("Symptom with ID: %s not found", symptomId));
             });
+    }
+
+    public List<SymptomDto> collectParentsSymptomsForEmergency(String emergencyId, List<UUID> symptomIds) {
+        if (symptomIds == null || symptomIds.isEmpty()) {
+            log.warn(EXCEPTION_NO_SYMPTOMS_PROVIDED_FOR_EMERGENCY, emergencyId);
+            return Collections.emptyList();
+        }
+
+        Set<UUID> uniqueSymptomIds = new HashSet<>(symptomIds);
+        return symptomMapper.toListDtos(symptomRepository.findAllWithParentsRecursively(uniqueSymptomIds));
+    }
+
+    public List<SymptomDto> collectChildSymptomsForEmergency(String emergencyId, List<UUID> symptomIds) {
+        if (symptomIds == null || symptomIds.isEmpty()) {
+            log.warn(EXCEPTION_NO_SYMPTOMS_PROVIDED_FOR_EMERGENCY, emergencyId);
+            return Collections.emptyList();
+        }
+        Set<UUID> uniqueSymptomIds = new HashSet<>(symptomIds);
+        return symptomMapper.toListDtos(symptomRepository.findAllChildrenRecursively(uniqueSymptomIds));
     }
 
     private boolean isCircularReference(Symptom symptom, Symptom potentialParent) {

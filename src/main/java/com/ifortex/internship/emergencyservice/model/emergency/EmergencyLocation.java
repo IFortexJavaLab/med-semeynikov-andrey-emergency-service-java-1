@@ -23,6 +23,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -55,4 +56,30 @@ public class EmergencyLocation {
     @UpdateTimestamp
     @Column(nullable = false)
     Instant timestamp;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        EmergencyLocation that = (EmergencyLocation) o;
+        return Objects.equals(id, that.id) && Objects.equals(emergency, that.emergency) && locationType == that.locationType
+               && Objects.equals(latitude, that.latitude) && Objects.equals(longitude, that.longitude) && Objects.equals(
+            timestamp, that.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(id);
+        result = 31 * result + Objects.hashCode(emergency);
+        result = 31 * result + Objects.hashCode(locationType);
+        result = 31 * result + Objects.hashCode(latitude);
+        result = 31 * result + Objects.hashCode(longitude);
+        result = 31 * result + Objects.hashCode(timestamp);
+        return result;
+    }
 }

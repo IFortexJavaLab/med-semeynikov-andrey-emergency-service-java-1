@@ -40,10 +40,6 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ParamedicSearchService {
 
-    static final int MAX_ATTEMPTS = 3;
-    static final Duration BASE_DELAY = Duration.ofMinutes(1);
-    static final Duration EXTENDED_SEARCH_DURATION = Duration.ofMinutes(20);
-
     EmergencyRepository emergencyRepository;
     EmergencyLocationMapper emergencyLocationMapper;
     EmergencyAssignmentMapper emergencyAssignmentMapper;
@@ -52,7 +48,12 @@ public class ParamedicSearchService {
     EmergencyLocationRepository emergencyLocationRepository;
     EmergencyAssignmentRepository emergencyAssignmentRepository;
 
-    @Value("${app.default_radius_km}") double defaultRadius;
+    @Value("${app.emergency.max_attempts}") int maxAttempts;
+    @Value("${app.emergency.default_radius_km}") double defaultRadius;
+    @Value("#{T(java.time.Duration).ofMinutes(T(java.lang.Long).parseLong('${app.emergency.base_delay_minutes}'))}")
+    Duration baseDelay;
+    @Value("#{T(java.time.Duration).ofMinutes(T(java.lang.Long).parseLong('${app.emergency.extended_search_duration_minutes}'))}")
+    Duration extendedSearchDuration;
 
     @Async
     @Transactional
@@ -63,7 +64,7 @@ public class ParamedicSearchService {
         log.info("Starting paramedic search for emergency [{}], location: ({}, {})", emergency.getId(), latitude, longitude);
 
         double radius = defaultRadius;
-        for (int i = 0; i < MAX_ATTEMPTS; i++) {
+        for (int i = 0; i < maxAttempts; i++) {
             log.debug("Attempt {}: searching paramedic within radius {} km", i + 1, radius);
             Optional<ParamedicLocation> found = paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius);
             if (found.isPresent()) {
@@ -72,11 +73,11 @@ public class ParamedicSearchService {
                 return;
             }
             log.debug("No paramedic found on attempt {}. Retrying after delay...", i + 1);
-            sleep(BASE_DELAY);
+            sleep(baseDelay);
         }
 
         radius *= 2;
-        Instant timeout = Instant.now().plus(EXTENDED_SEARCH_DURATION);
+        Instant timeout = Instant.now().plus(extendedSearchDuration);
         log.info("Switching to extended search. Radius increased to {}. Emergency [{}]", radius, emergency.getId());
 
         while (Instant.now().isBefore(timeout)) {
@@ -87,7 +88,7 @@ public class ParamedicSearchService {
                 assign(found.get(), emergency);
                 return;
             }
-            sleep(BASE_DELAY);
+            sleep(baseDelay);
         }
 
         emergency.setStatus(EmergencyStatus.RESERVE_HANDLED);
@@ -105,7 +106,7 @@ public class ParamedicSearchService {
         // todo notificationService.notifyReserveTeam(emergency);
 
         log.info("Emergency [{}] resolved by reserve team. No paramedic found in {} minutes", emergency.getId(),
-            EXTENDED_SEARCH_DURATION.toMinutes());
+            extendedSearchDuration.toMinutes());
     }
 
     private void assign(ParamedicLocation paramedicLocation, Emergency emergency) {
