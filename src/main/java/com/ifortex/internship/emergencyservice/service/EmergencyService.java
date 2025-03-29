@@ -210,6 +210,7 @@ public class EmergencyService {
     public ParamedicEmergencyViewDto getAssignedEmergency(UUID paramedicId) {
         log.debug("Fetching assigned emergency for paramedic {}", paramedicId);
 
+        //todo return optional
         EmergencySnapshot emergencySnapshot = emergencySnapshotRepository
             .findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)
             .orElse(null);
