@@ -4,7 +4,7 @@ import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyReques
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationType;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
-import com.ifortex.internship.emergencyservice.model.emergency.EmergencyLocation;
+import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
 import com.ifortex.internship.emergencyservice.repository.EmergencyLocationRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.medstarter.exception.custom.InvalidRequestException;
@@ -43,17 +43,19 @@ public class EmergencyService {
 
         Emergency emergency = new Emergency()
             .setClientId(clientId)
-            .setStatus(EmergencyStatus.ONGOING);
+            .setStatus(EmergencyStatus.ONGOING)
+            .setLatitude(request.latitude())
+            .setLongitude(request.longitude());
         emergency = emergencyRepository.save(emergency);
 
-        EmergencyLocation location = new EmergencyLocation()
+        ParamedicEmergencyLocation location = new ParamedicEmergencyLocation()
             .setEmergency(emergency)
-            .setLocationType(EmergencyLocationType.INITIATOR)
+            .setLocationType(EmergencyLocationType.ACCEPTED)
             .setLatitude(request.latitude())
             .setLongitude(request.longitude());
 
         emergencyLocationRepository.save(location);
-        emergency.getLocations().add(location);
+        emergency.getParamedicLocations().add(location);
 
         log.debug("Emergency [{}] location set: lat={}, lon={}", emergency.getId(), location.getLatitude(), location.getLongitude());
 

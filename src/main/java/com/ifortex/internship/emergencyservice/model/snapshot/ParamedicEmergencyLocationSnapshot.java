@@ -19,7 +19,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EmergencyLocationSnapshot {
+public class ParamedicEmergencyLocationSnapshot {
 
     Long id;
     UUID emergencyId;

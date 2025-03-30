@@ -15,6 +15,8 @@ import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -32,13 +34,16 @@ public class EmergencySnapshot {
     String id;
     Instant createdAt;
     Instant closedAt;
+    Duration duration;
     EmergencyStatus status;
 
+    //todo store name or email instead of id
     UUID clientId;
     UUID paramedicId;
+    BigDecimal latitude;
+    BigDecimal longitude;
 
-    List<EmergencyLocationSnapshot> locations;
-    List<EmergencyCancellationSnapshot> cancellations;
+    List<ParamedicEmergencyLocationSnapshot> paramedicLocations;
     List<EmergencyAssignmentSnapshot> assignments;
 
     String resolutionExplanation;

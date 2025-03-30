@@ -1,10 +1,9 @@
 package com.ifortex.internship.emergencyservice.unit.service;
 
 import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyRequest;
-import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationType;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
-import com.ifortex.internship.emergencyservice.model.emergency.EmergencyLocation;
+import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
 import com.ifortex.internship.emergencyservice.repository.EmergencyLocationRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.service.EmergencyService;
@@ -27,7 +26,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doNothing;
@@ -69,23 +67,16 @@ class EmergencyServiceTest {
             .thenReturn(false);
         when(emergencyRepository.save(any(Emergency.class))).thenReturn(emergency);
 
-        EmergencyLocation location = new EmergencyLocation()
-            .setEmergency(emergency)
-            .setLocationType(EmergencyLocationType.INITIATOR)
-            .setLatitude(request.latitude())
-            .setLongitude(request.longitude());
-        when(emergencyLocationRepository.save(any(EmergencyLocation.class))).thenReturn(location);
-
-        doNothing().when(emergencySnapshotService).createSnapshot(any(Emergency.class), any(EmergencyLocation.class), anyList());
+        doNothing().when(emergencySnapshotService).createSnapshot(any(Emergency.class), any(ParamedicEmergencyLocation.class), anyList());
         doNothing().when(paramedicSearchService).findParamedicForEmergency(any(Emergency.class));
 
         emergencyService.createEmergency(request, client);
 
         verify(emergencyRepository, times(1)).save(any(Emergency.class));
-        verify(emergencyLocationRepository, times(1)).save(any(EmergencyLocation.class));
+        verify(emergencyLocationRepository, times(1)).save(any(ParamedicEmergencyLocation.class));
 
         ArgumentCaptor<Emergency> emergencyCaptor = ArgumentCaptor.forClass(Emergency.class);
-        ArgumentCaptor<EmergencyLocation> locationCaptor = ArgumentCaptor.forClass(EmergencyLocation.class);
+        ArgumentCaptor<ParamedicEmergencyLocation> locationCaptor = ArgumentCaptor.forClass(ParamedicEmergencyLocation.class);
         ArgumentCaptor<List> symptomsCaptor = ArgumentCaptor.forClass(List.class);
         verify(emergencySnapshotService, times(1)).createSnapshot(
             emergencyCaptor.capture(),
@@ -93,11 +84,8 @@ class EmergencyServiceTest {
             symptomsCaptor.capture()
         );
         assertEquals(emergency, emergencyCaptor.getValue());
-        assertEquals(location, locationCaptor.getValue());
         assertEquals(request.symptoms(), symptomsCaptor.getValue());
-
         verify(paramedicSearchService, times(1)).findParamedicForEmergency(emergency);
-        assertTrue(emergency.getLocations().contains(location));
     }
 
     @Test

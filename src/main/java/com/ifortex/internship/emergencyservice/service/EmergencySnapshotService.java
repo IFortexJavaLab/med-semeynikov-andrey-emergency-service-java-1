@@ -8,7 +8,7 @@ import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserDiseaseDto;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
-import com.ifortex.internship.emergencyservice.model.emergency.EmergencyLocation;
+import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
 import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.UserAllergyRepository;
@@ -53,7 +53,7 @@ public class EmergencySnapshotService {
     EmergencySnapshotRepository emergencySnapshotRepository;
 
     @Transactional
-    public void createSnapshot(Emergency emergency, EmergencyLocation location, List<UUID> symptomsIds) {
+    public void createSnapshot(Emergency emergency, ParamedicEmergencyLocation location, List<UUID> symptomsIds) {
         UUID clientId = emergency.getClientId();
         log.info("Creating snapshot for emergency [{}] for client [{}]", emergency.getId(), clientId);
 
@@ -67,7 +67,9 @@ public class EmergencySnapshotService {
             .setCreatedAt(emergency.getCreatedAt())
             .setStatus(emergency.getStatus())
             .setClientId(clientId)
-            .setLocations(List.of(emergencyLocationMapper.toSnapshot(location)))
+            .setLatitude(emergency.getLatitude())
+            .setLongitude(emergency.getLongitude())
+            .setParamedicLocations(List.of(emergencyLocationMapper.toSnapshot(location)))
             .setSymptoms(symptoms)
             .setAllergies(userAllergies)
             .setDiseases(userDiseases);

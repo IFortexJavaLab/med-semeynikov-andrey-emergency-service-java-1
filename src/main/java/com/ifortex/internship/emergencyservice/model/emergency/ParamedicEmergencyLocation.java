@@ -31,9 +31,9 @@ import java.util.Objects;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-@Table(name = "emergency_location")
+@Table(name = "paramedic_emergency_location")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EmergencyLocation {
+public class ParamedicEmergencyLocation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -66,7 +66,7 @@ public class EmergencyLocation {
             return false;
         }
 
-        EmergencyLocation that = (EmergencyLocation) o;
+        ParamedicEmergencyLocation that = (ParamedicEmergencyLocation) o;
         return Objects.equals(id, that.id) && Objects.equals(emergency, that.emergency) && locationType == that.locationType
                && Objects.equals(latitude, that.latitude) && Objects.equals(longitude, that.longitude) && Objects.equals(
             timestamp, that.timestamp);

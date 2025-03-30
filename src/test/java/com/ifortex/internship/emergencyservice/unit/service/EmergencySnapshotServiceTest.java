@@ -6,8 +6,8 @@ import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyVi
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
-import com.ifortex.internship.emergencyservice.model.emergency.EmergencyLocation;
-import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyLocationSnapshot;
+import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
+import com.ifortex.internship.emergencyservice.model.snapshot.ParamedicEmergencyLocationSnapshot;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
 import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.UserAllergyRepository;
@@ -27,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -60,7 +61,7 @@ class EmergencySnapshotServiceTest {
 
     private Emergency emergency;
     private EmergencySnapshot snapshot;
-    private EmergencyLocation location;
+    private ParamedicEmergencyLocation location;
     private UUID clientId;
 
     @BeforeEach
@@ -74,8 +75,8 @@ class EmergencySnapshotServiceTest {
         snapshot.setCreatedAt(emergency.getCreatedAt());
         snapshot.setStatus(emergency.getStatus());
         snapshot.setClientId(clientId);
-        location = new EmergencyLocation().setEmergency(emergency)
-            .setLocationType(com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationType.INITIATOR);
+        snapshot.setLongitude(new BigDecimal("60"));
+        snapshot.setLatitude(new BigDecimal("30"));
     }
 
     @Test
@@ -86,7 +87,7 @@ class EmergencySnapshotServiceTest {
         when(userDiseaseMapper.toDtoList(any())).thenReturn(Collections.emptyList());
         when(symptomService.collectParentsSymptomsForEmergency(emergency.getId().toString(), List.of()))
             .thenReturn(Collections.emptyList());
-        EmergencyLocationSnapshot locSnapshot = new EmergencyLocationSnapshot();
+        ParamedicEmergencyLocationSnapshot locSnapshot = new ParamedicEmergencyLocationSnapshot();
         when(emergencyLocationMapper.toSnapshot(location)).thenReturn(locSnapshot);
         when(emergencySnapshotRepository.save(any(EmergencySnapshot.class))).thenReturn(snapshot);
 
@@ -99,9 +100,9 @@ class EmergencySnapshotServiceTest {
         assertEquals(emergency.getCreatedAt(), savedSnapshot.getCreatedAt());
         assertEquals(emergency.getStatus(), savedSnapshot.getStatus());
         assertEquals(clientId, savedSnapshot.getClientId());
-        assertNotNull(savedSnapshot.getLocations());
-        assertEquals(1, savedSnapshot.getLocations().size());
-        assertEquals(locSnapshot, savedSnapshot.getLocations().getFirst());
+        assertNotNull(savedSnapshot.getParamedicLocations());
+        assertEquals(1, savedSnapshot.getParamedicLocations().size());
+        assertEquals(locSnapshot, savedSnapshot.getParamedicLocations().getFirst());
     }
 
     @Test
