@@ -23,6 +23,7 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,7 @@ import java.util.UUID;
 @Table(name = "emergency")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Emergency {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
@@ -55,14 +57,17 @@ public class Emergency {
     @Column(columnDefinition = "TEXT")
     String resolutionExplanation;
 
+    @Column(nullable = false, precision = 10, scale = 6)
+    BigDecimal latitude;
+
+    @Column(nullable = false, precision = 10, scale = 6)
+    BigDecimal longitude;
+
     @OneToMany(mappedBy = "emergency", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<EmergencyLocation> locations = new ArrayList<>();
+    List<ParamedicEmergencyLocation> paramedicLocations = new ArrayList<>();
 
     @OneToMany(mappedBy = "emergency", cascade = CascadeType.ALL, orphanRemoval = true)
     List<EmergencyAssignment> assignments = new ArrayList<>();
-
-    @OneToMany(mappedBy = "emergency", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<EmergencyCancellation> cancellations = new ArrayList<>();
 
     @OneToOne(mappedBy = "emergency", cascade = CascadeType.ALL, orphanRemoval = true)
     EmergencyFeedback feedback;

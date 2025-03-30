@@ -41,6 +41,6 @@ public interface ParamedicLocationRepository extends JpaRepository<ParamedicLoca
         @Param("radius") double radiusInKm
     );
 
-    //todo and index
-    // add constraint on emergency assigment
+    //todo add index
+    // add where on emergency assigment to search through new medics
 }

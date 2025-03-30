@@ -1,7 +1,7 @@
 package com.ifortex.internship.emergencyservice.controller;
 
 import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
-import com.ifortex.internship.emergencyservice.service.EmergencyService;
+import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -32,18 +32,17 @@ import java.util.UUID;
 @PreAuthorize("hasRole('PARAMEDIC')")
 public class ParamedicEmergencyController {
 
-    EmergencyService emergencyService;
+    EmergencySnapshotService emergencySnapshotService;
 
     @Operation(
         summary = "Get assigned emergency",
         description = "Returns the emergency assigned to the authenticated paramedic if it is still ongoing"
     )
     @GetMapping("/assigned")
-    public ResponseEntity<?> getAssignedEmergency(@AuthenticationPrincipal UserDetailsImpl paramedic) {
+    public ResponseEntity<ParamedicEmergencyViewDto> getAssignedEmergency(@AuthenticationPrincipal UserDetailsImpl paramedic) {
         UUID paramedicId = paramedic.getAccountId();
         log.info("Paramedic [{}] requested their assigned emergency", paramedicId);
-        ParamedicEmergencyViewDto emergency = emergencyService.getAssignedEmergency(paramedicId);
-        return ResponseEntity.ok(Objects.requireNonNullElse(emergency, "You don't have an ongoing emergency"));
-        //todo no content
+        Optional<ParamedicEmergencyViewDto> emergency = emergencySnapshotService.getAssignedEmergency(paramedicId);
+        return emergency.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 }

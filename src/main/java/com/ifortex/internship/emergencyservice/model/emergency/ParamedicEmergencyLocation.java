@@ -23,6 +23,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -30,9 +31,9 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-@Table(name = "emergency_location")
+@Table(name = "paramedic_emergency_location")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EmergencyLocation {
+public class ParamedicEmergencyLocation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,4 +56,30 @@ public class EmergencyLocation {
     @UpdateTimestamp
     @Column(nullable = false)
     Instant timestamp;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        ParamedicEmergencyLocation that = (ParamedicEmergencyLocation) o;
+        return Objects.equals(id, that.id) && Objects.equals(emergency, that.emergency) && locationType == that.locationType
+               && Objects.equals(latitude, that.latitude) && Objects.equals(longitude, that.longitude) && Objects.equals(
+            timestamp, that.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(id);
+        result = 31 * result + Objects.hashCode(emergency);
+        result = 31 * result + Objects.hashCode(locationType);
+        result = 31 * result + Objects.hashCode(latitude);
+        result = 31 * result + Objects.hashCode(longitude);
+        result = 31 * result + Objects.hashCode(timestamp);
+        return result;
+    }
 }
