@@ -1,11 +1,14 @@
 package com.ifortex.internship.emergencyservice.controller;
 
+import com.ifortex.internship.emergencyservice.dto.request.UpdateParamedicLocationRequest;
 import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
 import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
+import com.ifortex.internship.emergencyservice.service.ParamedicLocationService;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -15,6 +18,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,6 +38,7 @@ import java.util.UUID;
 public class ParamedicEmergencyController {
 
     EmergencySnapshotService emergencySnapshotService;
+    ParamedicLocationService paramedicLocationService;
 
     @Operation(
         summary = "Get assigned emergency",
@@ -44,5 +50,20 @@ public class ParamedicEmergencyController {
         log.info("Paramedic [{}] requested their assigned emergency", paramedicId);
         Optional<ParamedicEmergencyViewDto> emergency = emergencySnapshotService.getAssignedEmergency(paramedicId);
         return emergency.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @Operation(
+        summary = "Update current paramedic location",
+        description = "Allows paramedic to update their current location"
+    )
+    @PutMapping("/location")
+    public ResponseEntity<Void> updateLocation(
+        @Valid @RequestBody UpdateParamedicLocationRequest request,
+        @AuthenticationPrincipal UserDetailsImpl paramedic
+    ) {
+        UUID paramedicId = paramedic.getAccountId();
+        log.info("Paramedic [{}] updates location to lat={}, lng={}", paramedicId, request.latitude(), request.longitude());
+        paramedicLocationService.updateLocation(request, paramedicId);
+        return ResponseEntity.noContent().build();
     }
 }
