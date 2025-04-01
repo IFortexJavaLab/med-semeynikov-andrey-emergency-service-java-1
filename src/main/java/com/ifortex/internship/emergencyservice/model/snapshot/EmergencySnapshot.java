@@ -37,8 +37,7 @@ public class EmergencySnapshot {
     Duration duration;
     EmergencyStatus status;
 
-    //todo store name or email instead of id
-    UUID clientId;
+    String clientFirstName;
     UUID paramedicId;
     BigDecimal latitude;
     BigDecimal longitude;

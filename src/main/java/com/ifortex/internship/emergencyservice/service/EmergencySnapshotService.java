@@ -10,6 +10,7 @@ import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
 import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
+import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.UserAllergyRepository;
 import com.ifortex.internship.emergencyservice.repository.UserDiseaseRepository;
@@ -18,6 +19,7 @@ import com.ifortex.internship.emergencyservice.util.EmergencySnapshotMapper;
 import com.ifortex.internship.emergencyservice.util.UserAllergyMapper;
 import com.ifortex.internship.emergencyservice.util.UserDiseaseMapper;
 import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
+import com.ifortex.internship.medstarter.security.service.AuthenticationFacade;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -46,6 +49,8 @@ public class EmergencySnapshotService {
     SymptomService symptomService;
     UserAllergyMapper userAllergyMapper;
     UserDiseaseMapper userDiseaseMapper;
+    EmergencyRepository emergencyRepository;
+    AuthenticationFacade authenticationFacade;
     UserAllergyRepository userAllergyRepository;
     UserDiseaseRepository userDiseaseRepository;
     EmergencyLocationMapper emergencyLocationMapper;
@@ -55,6 +60,9 @@ public class EmergencySnapshotService {
     @Transactional
     public void createSnapshot(Emergency emergency, ParamedicEmergencyLocation location, List<UUID> symptomsIds) {
         UUID clientId = emergency.getClientId();
+        String firstName = authenticationFacade.getUserFirstNameFromAuthentication();
+        Objects.requireNonNull(firstName, "First name is missing in security context");
+
         log.info("Creating snapshot for emergency [{}] for client [{}]", emergency.getId(), clientId);
 
         List<UserAllergyDto> userAllergies = userAllergyMapper.toDtoList(userAllergyRepository.findByUserId(clientId));
@@ -66,7 +74,7 @@ public class EmergencySnapshotService {
             .setId(emergency.getId().toString())
             .setCreatedAt(emergency.getCreatedAt())
             .setStatus(emergency.getStatus())
-            .setClientId(clientId)
+            .setClientFirstName(firstName)
             .setLatitude(emergency.getLatitude())
             .setLongitude(emergency.getLongitude())
             .setParamedicLocations(List.of(emergencyLocationMapper.toSnapshot(location)))
@@ -81,7 +89,7 @@ public class EmergencySnapshotService {
     public void addSymptomsForCurrentEmergency(UpdateEmergencySymptomsRequest request, UUID clientId) {
         log.debug("Adding symptoms for client: {}", clientId);
 
-        EmergencySnapshot emergencySnapshot = getEmergencySnapshot(clientId);
+        EmergencySnapshot emergencySnapshot = getEmergencySnapshotByClientIdAndStatus(clientId, EmergencyStatus.ONGOING);
 
         List<SymptomDto> newSymptoms = symptomService.collectParentsSymptomsForEmergency(emergencySnapshot.getId(), request.symptoms());
         log.debug("Collected {} symptom(s) for emergency {}", newSymptoms.size(), emergencySnapshot.getId());
@@ -114,11 +122,7 @@ public class EmergencySnapshotService {
     public void deleteSymptomsForCurrentEmergency(UpdateEmergencySymptomsRequest request, UUID clientId) {
         log.debug("Deleting symptoms for client: {}", clientId);
 
-        EmergencySnapshot emergencySnapshot = emergencySnapshotRepository.findByClientIdAndStatus(clientId, EmergencyStatus.ONGOING)
-            .orElseThrow(() -> {
-                log.error(LOG_NO_ONGOING_EMERGENCY_FOUND_FOR_CLIENT, clientId);
-                return new EntityNotFoundException(EXCEPTION_NO_ONGOING_EMERGENCY_FOUND);
-            });
+        EmergencySnapshot emergencySnapshot = getEmergencySnapshotByClientIdAndStatus(clientId, EmergencyStatus.ONGOING);
 
         List<SymptomDto> symptomsToRemove = symptomService.collectChildSymptomsForEmergency(emergencySnapshot.getId(), request.symptoms());
         log.debug("Collected {} symptom(s) for removal for emergency {}", symptomsToRemove.size(), emergencySnapshot.getId());
@@ -145,12 +149,7 @@ public class EmergencySnapshotService {
     public List<EmergencySymptomListDto> getSymptomsForCurrentEmergency(UUID clientId) {
         log.debug("Fetching current emergency symptoms for client: {}", clientId);
 
-        EmergencySnapshot snapshot = emergencySnapshotRepository
-            .findByClientIdAndStatus(clientId, EmergencyStatus.ONGOING)
-            .orElseThrow(() -> {
-                log.error(LOG_NO_ONGOING_EMERGENCY_FOUND_FOR_CLIENT, clientId);
-                return new EntityNotFoundException(EXCEPTION_NO_ONGOING_EMERGENCY_FOUND);
-            });
+        EmergencySnapshot snapshot = getEmergencySnapshotByClientIdAndStatus(clientId, EmergencyStatus.ONGOING);
 
         List<SymptomDto> symptoms = snapshot.getSymptoms();
         if (symptoms == null || symptoms.isEmpty()) {
@@ -162,8 +161,9 @@ public class EmergencySnapshotService {
         return symptomTree;
     }
 
-    public EmergencySnapshot getEmergencySnapshot(UUID clientId) {
-        return emergencySnapshotRepository.findByClientIdAndStatus(clientId, EmergencyStatus.ONGOING)
+    public EmergencySnapshot getEmergencySnapshotByClientIdAndStatus(UUID clientId, EmergencyStatus status) {
+        var emergency = getEmergencyByClientIdAndStatus(clientId, status);
+        return emergencySnapshotRepository.findById(emergency.getId().toString())
             .orElseThrow(() -> {
                 log.error(LOG_NO_ONGOING_EMERGENCY_FOUND_FOR_CLIENT, clientId);
                 return new EntityNotFoundException(EXCEPTION_NO_ONGOING_EMERGENCY_FOUND);
@@ -174,11 +174,27 @@ public class EmergencySnapshotService {
     public Optional<ParamedicEmergencyViewDto> getAssignedEmergency(UUID paramedicId) {
         log.debug("Fetching assigned emergency for paramedic {}", paramedicId);
 
-        Optional<EmergencySnapshot> emergencySnapshotOpt =
-            emergencySnapshotRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING);
+        var emergency = emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)
+            .orElseThrow(
+                () -> {
+                    log.error("No ongoing emergency found for paramedic: {}", paramedicId);
+                    return new EntityNotFoundException(EXCEPTION_NO_ONGOING_EMERGENCY_FOUND);
+                }
+            );
+
+        Optional<EmergencySnapshot> emergencySnapshotOpt = emergencySnapshotRepository.findById(emergency.getId().toString());
         if (emergencySnapshotOpt.isEmpty()) {
             log.info("No ongoing emergency assigned to paramedic {}", paramedicId);
         }
         return emergencySnapshotOpt.map(emergencySnapshotMapper::toParamedicViewDto);
+    }
+
+    private Emergency getEmergencyByClientIdAndStatus(UUID clientId, EmergencyStatus status) {
+        return emergencyRepository.findByClientIdAndStatus(clientId, status).orElseThrow(
+            () -> {
+                log.error(LOG_NO_ONGOING_EMERGENCY_FOUND_FOR_CLIENT, clientId);
+                return new EntityNotFoundException(EXCEPTION_NO_ONGOING_EMERGENCY_FOUND);
+            }
+        );
     }
 }

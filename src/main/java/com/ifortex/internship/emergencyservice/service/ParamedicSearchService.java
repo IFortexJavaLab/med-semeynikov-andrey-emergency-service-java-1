@@ -65,7 +65,10 @@ public class ParamedicSearchService {
         double radius = defaultRadius;
         for (int i = 0; i < maxAttempts; i++) {
             log.debug("Attempt {}: searching paramedic within radius {} km", i + 1, radius);
-            Optional<ParamedicLocation> found = paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius);
+            Optional<ParamedicLocation>
+                found =
+                paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius, emergency.getId());
+
             if (found.isPresent()) {
                 log.info("Paramedic {} found on attempt {} within radius {}", found.get().getParamedicId(), i + 1, radius);
                 assign(found.get(), emergency);
@@ -81,7 +84,9 @@ public class ParamedicSearchService {
 
         while (Instant.now().isBefore(timeout)) {
             log.debug("Extended search: trying to find paramedic within radius {} km. Emergency [{}]", radius, emergency.getId());
-            Optional<ParamedicLocation> found = paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius);
+            Optional<ParamedicLocation>
+                found =
+                paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius, emergency.getId());
             if (found.isPresent()) {
                 log.info("Paramedic {} found during extended search", found.get().getParamedicId());
                 assign(found.get(), emergency);
@@ -116,6 +121,7 @@ public class ParamedicSearchService {
         EmergencyAssignment assignment = createAndSaveAssignment(paramedicLocation, emergency);
         List<ParamedicEmergencyLocation> paramedicEmergencyLocations = createAndSaveEmergencyLocations(paramedicLocation, emergency);
         emergency.setParamedicId(paramedicId);
+        emergencyRepository.save(emergency);
         updateEmergencySnapshot(emergency, assignment, paramedicEmergencyLocations);
 
         //todo: notificationService.notifyParamedic(paramedicId, emergency);

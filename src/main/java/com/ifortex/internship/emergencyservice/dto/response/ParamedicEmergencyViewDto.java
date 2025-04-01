@@ -11,7 +11,6 @@ import lombok.experimental.FieldDefaults;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -24,7 +23,7 @@ public class ParamedicEmergencyViewDto {
     Instant createdAt;
     Instant closedAt;
     EmergencyStatus status;
-    UUID clientId;
+    String clientFirstName;
     BigDecimal latitude;
     BigDecimal longitude;
     List<EmergencySymptomListDto> symptoms;
