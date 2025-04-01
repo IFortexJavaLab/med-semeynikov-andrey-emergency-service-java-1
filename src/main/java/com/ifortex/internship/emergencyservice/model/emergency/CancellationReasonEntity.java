@@ -35,5 +35,5 @@ public class CancellationReasonEntity {
     String description;
 
     @Column(nullable = false)
-    Boolean requiresComment;
+    boolean requiresComment;
 }

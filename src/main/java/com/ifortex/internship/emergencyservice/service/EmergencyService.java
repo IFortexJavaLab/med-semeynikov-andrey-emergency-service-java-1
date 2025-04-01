@@ -1,5 +1,6 @@
 package com.ifortex.internship.emergencyservice.service;
 
+import com.ifortex.internship.emergencyservice.dto.request.CompleteEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.ParamedicCancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationType;
@@ -7,9 +8,11 @@ import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.CancellationReasonEntity;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyAssignment;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyResolutionEntity;
 import com.ifortex.internship.emergencyservice.repository.CancellationReasonRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyAssignmentRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
+import com.ifortex.internship.emergencyservice.repository.EmergencyResolutionRepository;
 import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
 import com.ifortex.internship.medstarter.exception.custom.InvalidRequestException;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
@@ -35,7 +38,8 @@ public class EmergencyService {
     EmergencySnapshotService emergencySnapshotService;
     CancellationReasonRepository cancellationReasonRepository;
     EmergencyAssignmentRepository emergencyAssignmentRepository;
-    private final ParamedicEmergencyLocationService paramedicEmergencyLocationService;
+    EmergencyResolutionRepository emergencyResolutionRepository;
+    ParamedicEmergencyLocationService paramedicEmergencyLocationService;
 
     @Transactional
     public void createEmergency(CreateEmergencyRequest request, UserDetailsImpl client) {
@@ -85,6 +89,11 @@ public class EmergencyService {
                 return new EntityNotFoundException("Invalid cancellation reason ID");
             });
 
+        if (reason.isRequiresComment() && (request.cancellationComment() == null || request.cancellationComment().isBlank())) {
+            log.error("Paramedic: {} didn't provide cancellation comment", paramedicId);
+            throw new InvalidRequestException("Cancellation comment is required");
+        }
+
         assignment.setCanceledAt(Instant.now());
         assignment.setCancellationReason(reason);
         assignment.setCancellationComment(request.cancellationComment());
@@ -101,4 +110,37 @@ public class EmergencyService {
         paramedicSearchService.findParamedicForEmergency(emergency);
     }
 
+    @Transactional
+    public void completeAssignedEmergency(CompleteEmergencyRequest request, UUID paramedicId) {
+        log.info("Completing emergency for paramedic {}", paramedicId);
+
+        Emergency emergency = emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)
+            .orElseThrow(() -> {
+                log.error("No active emergency found for paramedic {}", paramedicId);
+                return new EntityNotFoundException("No assigned emergency found");
+            });
+
+        EmergencyResolutionEntity resolution = emergencyResolutionRepository.findById(request.emergencyResolutionId())
+            .orElseThrow(() -> {
+                log.error("Resolution with ID: {} not found", request.emergencyResolutionId());
+                return new EntityNotFoundException("Invalid emergency resolution ID");
+            });
+
+        if (resolution.isRequiresComment() && (request.resolutionExplanation() == null || request.resolutionExplanation().isBlank())) {
+            log.error("Paramedic: {} didn't provide resolution comment", paramedicId);
+            throw new InvalidRequestException("This resolution requires an explanation comment");
+        }
+
+        var paramedicLocation = paramedicEmergencyLocationService.createAndSaveParamedicEmergencyLocation(
+            request.longitude(), request.latitude(), paramedicId, emergency, EmergencyLocationType.FINISHED);
+
+        emergency.setStatus(EmergencyStatus.COMPLETED)
+            .setResolution(resolution)
+            .setResolutionExplanation(request.resolutionExplanation());
+
+        emergencyRepository.save(emergency);
+        log.info("Emergency [{}] marked as FINISHED with resolution [{}]", emergency.getId(), resolution.getCode());
+
+        snapshotService.updateSnapshotAfterCompletion(emergency, paramedicLocation, resolution);
+    }
 }

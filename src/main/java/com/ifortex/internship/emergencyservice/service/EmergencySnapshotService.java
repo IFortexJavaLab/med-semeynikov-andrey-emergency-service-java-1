@@ -10,6 +10,7 @@ import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationT
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyAssignment;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyResolutionEntity;
 import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyAssignmentSnapshot;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
@@ -33,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -249,12 +251,8 @@ public class EmergencySnapshotService {
                                                             EmergencyAssignment assignment,
                                                             ParamedicEmergencyLocation paramedicEmergencyLocation) {
 
-        EmergencySnapshot snapshot = emergencySnapshotRepository.findById(emergency.getId().toString())
-            .orElseThrow(() -> {
-                log.error("Emergency [{}] snapshot not found", emergency.getId());
-                return new EntityNotFoundException("Emergency snapshot not found");
-            });
-        log.debug("Updating snapshot for emergency {}", emergency.getId());
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergency.getId().toString());
+        log.debug("Updating snapshot after paramedic: {} assigned for emergency {}", emergency.getParamedicId(), emergency.getId());
         snapshot.setParamedicId(emergency.getParamedicId());
 
         EmergencyAssignmentSnapshot assignmentSnapshot = emergencyAssignmentMapper.toSnapshot(assignment);
@@ -269,6 +267,34 @@ public class EmergencySnapshotService {
 
         emergencySnapshotRepository.save(snapshot);
         log.debug("Snapshot for emergency {} updated successfully", emergency.getId());
+    }
+
+    public void updateSnapshotAfterCompletion(Emergency emergency, ParamedicEmergencyLocation location, EmergencyResolutionEntity resolution) {
+        String emergencyId = emergency.getId().toString();
+        log.info("Updating snapshot after completion of emergency {}", emergencyId);
+
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergencyId)
+            .setResolution(resolution.getDescription())
+            .setResolutionExplanation(emergency.getResolutionExplanation())
+            .setStatus(EmergencyStatus.COMPLETED)
+            .setClosedAt(Instant.now());
+
+        snapshot.setDuration(Duration.between(snapshot.getCreatedAt(), snapshot.getClosedAt()));
+
+        ParamedicEmergencyLocationSnapshot locationSnapshot = new ParamedicEmergencyLocationSnapshot()
+            .setLatitude(location.getLatitude())
+            .setLongitude(location.getLongitude())
+            .setTimestamp(location.getTimestamp())
+            .setParamedicId(emergency.getParamedicId())
+            .setLocationType(EmergencyLocationType.FINISHED);
+
+        if (snapshot.getParamedicLocations() == null) {
+            snapshot.setParamedicLocations(new ArrayList<>());
+        }
+        snapshot.getParamedicLocations().add(locationSnapshot);
+
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot updated for completed emergency {}", emergencyId);
     }
 
     private EmergencySnapshot getEmergencySnapshotByEmergencyId(String emergencyId) {

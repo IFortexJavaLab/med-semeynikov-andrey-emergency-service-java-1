@@ -99,7 +99,7 @@ public class ParamedicSearchService {
         emergencySnapshot.setStatus(emergency.getStatus()).setClosedAt(Instant.now());
         emergencySnapshotRepository.save(emergencySnapshot);
 
-        // todo notificationService.notifyReserveTeam(emergency);
+        log.info("MOCK. Sent request to reserve team service");
 
         log.info("Emergency [{}] resolved by reserve team. No paramedic found in {} minutes", emergency.getId(),
             extendedSearchDuration.toMinutes());
@@ -114,14 +114,16 @@ public class ParamedicSearchService {
 
         EmergencyLocationType type = EmergencyLocationType.ACCEPTED;
         var paramedicEmergencyLocation =
-            paramedicEmergencyLocationService.createAndSaveParamedicEmergencyLocation(paramedicLocation.getLongitude(), paramedicLocation.getLatitude(),
+            paramedicEmergencyLocationService.createAndSaveParamedicEmergencyLocation(
+                paramedicLocation.getLongitude(),
+                paramedicLocation.getLatitude(),
                 paramedicId, emergency, type);
 
         emergency.setParamedicId(paramedicId);
         emergencyRepository.save(emergency);
         snapshotService.updateEmergencySnapshotAfterParamedicAssign(emergency, assignment, paramedicEmergencyLocation);
 
-        //todo: notificationService.notifyParamedic(paramedicId, emergency);
+        log.info("MOCK. Notify paramedic: [{}] about assigned emergency", paramedicId);
 
         log.info("Paramedic {} assigned to emergency {} with accepted and current location saved", paramedicId, emergencyId);
     }

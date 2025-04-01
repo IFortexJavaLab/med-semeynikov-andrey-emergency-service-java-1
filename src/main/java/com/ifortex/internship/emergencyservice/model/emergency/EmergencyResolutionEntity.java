@@ -35,5 +35,5 @@ public class EmergencyResolutionEntity {
     String description;
 
     @Column(nullable = false)
-    Boolean requiresComment;
+    boolean requiresComment;
 }

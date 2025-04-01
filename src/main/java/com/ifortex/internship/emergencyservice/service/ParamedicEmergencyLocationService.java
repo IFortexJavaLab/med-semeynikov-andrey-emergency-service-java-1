@@ -36,6 +36,7 @@ public class ParamedicEmergencyLocationService {
             .setLongitude(longitude);
 
         paramedicEmergencyLocationRepository.save(paramedicEmergencyLocation);
+        emergency.getParamedicLocations().add(paramedicEmergencyLocation);
         log.debug("Saved paramedic emergency location for emergency {}", emergency.getId());
         return paramedicEmergencyLocation;
     }

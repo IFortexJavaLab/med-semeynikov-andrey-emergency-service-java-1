@@ -1,5 +1,6 @@
 package com.ifortex.internship.emergencyservice.controller;
 
+import com.ifortex.internship.emergencyservice.dto.request.CompleteEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.ParamedicCancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.UpdateParamedicLocationRequest;
 import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
@@ -78,7 +79,22 @@ public class ParamedicEmergencyController {
         @Valid @RequestBody ParamedicCancelEmergencyRequest request,
         @AuthenticationPrincipal UserDetailsImpl paramedic
     ) {
+        log.info("Request from paramedic {} to cancel assigned emergency", paramedic.getAccountId());
         emergencyService.cancelAssignedEmergencyByParamedic(request, paramedic.getAccountId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Complete assigned emergency",
+        description = "Allows the assigned paramedic to complete the current emergency"
+    )
+    @PutMapping("/assigned/complete")
+    public ResponseEntity<Void> completeAssignedEmergency(
+        @Valid @RequestBody CompleteEmergencyRequest request,
+        @AuthenticationPrincipal UserDetailsImpl paramedic
+    ) {
+        log.info("Request from paramedic {} to complete assigned emergency", paramedic.getAccountId());
+        emergencyService.completeAssignedEmergency(request, paramedic.getAccountId());
         return ResponseEntity.noContent().build();
     }
 

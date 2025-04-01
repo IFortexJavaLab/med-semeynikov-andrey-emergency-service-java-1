@@ -3,7 +3,6 @@ package com.ifortex.internship.emergencyservice.model.snapshot;
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserDiseaseDto;
-import com.ifortex.internship.emergencyservice.model.constant.EmergencyResolution;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import jakarta.persistence.Id;
 import lombok.AccessLevel;
@@ -46,7 +45,7 @@ public class EmergencySnapshot {
     List<EmergencyAssignmentSnapshot> assignments;
 
     String resolutionExplanation;
-    EmergencyResolution resolution;
+    String resolution;
     EmergencyFeedbackSnapshot feedback;
 
     List<SymptomDto> symptoms;
