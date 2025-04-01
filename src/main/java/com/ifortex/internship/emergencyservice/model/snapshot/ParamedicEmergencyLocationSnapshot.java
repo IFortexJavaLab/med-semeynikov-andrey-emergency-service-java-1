@@ -23,6 +23,7 @@ public class ParamedicEmergencyLocationSnapshot {
 
     Long id;
     UUID emergencyId;
+    UUID paramedicId;
     EmergencyLocationType locationType;
     BigDecimal latitude;
     BigDecimal longitude;

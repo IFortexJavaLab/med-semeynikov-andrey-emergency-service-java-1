@@ -1,7 +1,9 @@
 package com.ifortex.internship.emergencyservice.controller;
 
+import com.ifortex.internship.emergencyservice.dto.request.ParamedicCancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.UpdateParamedicLocationRequest;
 import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
+import com.ifortex.internship.emergencyservice.service.EmergencyService;
 import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
 import com.ifortex.internship.emergencyservice.service.ParamedicLocationService;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
@@ -37,6 +39,7 @@ import java.util.UUID;
 @PreAuthorize("hasRole('PARAMEDIC')")
 public class ParamedicEmergencyController {
 
+    EmergencyService emergencyService;
     EmergencySnapshotService emergencySnapshotService;
     ParamedicLocationService paramedicLocationService;
 
@@ -66,4 +69,17 @@ public class ParamedicEmergencyController {
         paramedicLocationService.updateLocation(request, paramedicId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(
+        summary = "Cancel assigned emergency",
+        description = "Allows paramedic to cancel emergency and provide reason")
+    @PutMapping("/assigned/cancel")
+    public ResponseEntity<Void> cancelAssignedEmergency(
+        @Valid @RequestBody ParamedicCancelEmergencyRequest request,
+        @AuthenticationPrincipal UserDetailsImpl paramedic
+    ) {
+        emergencyService.cancelAssignedEmergencyByParamedic(request, paramedic.getAccountId());
+        return ResponseEntity.noContent().build();
+    }
+
 }

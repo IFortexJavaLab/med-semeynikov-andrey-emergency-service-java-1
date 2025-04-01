@@ -1,12 +1,16 @@
 package com.ifortex.internship.emergencyservice.service;
 
 import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyRequest;
+import com.ifortex.internship.emergencyservice.dto.request.ParamedicCancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationType;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
+import com.ifortex.internship.emergencyservice.model.emergency.CancellationReasonEntity;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
-import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
-import com.ifortex.internship.emergencyservice.repository.EmergencyLocationRepository;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyAssignment;
+import com.ifortex.internship.emergencyservice.repository.CancellationReasonRepository;
+import com.ifortex.internship.emergencyservice.repository.EmergencyAssignmentRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
+import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
 import com.ifortex.internship.medstarter.exception.custom.InvalidRequestException;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
 import jakarta.transaction.Transactional;
@@ -16,6 +20,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Slf4j
@@ -25,9 +30,12 @@ import java.util.UUID;
 public class EmergencyService {
 
     EmergencyRepository emergencyRepository;
+    EmergencySnapshotService snapshotService;
     ParamedicSearchService paramedicSearchService;
     EmergencySnapshotService emergencySnapshotService;
-    EmergencyLocationRepository emergencyLocationRepository;
+    CancellationReasonRepository cancellationReasonRepository;
+    EmergencyAssignmentRepository emergencyAssignmentRepository;
+    private final ParamedicEmergencyLocationService paramedicEmergencyLocationService;
 
     @Transactional
     public void createEmergency(CreateEmergencyRequest request, UserDetailsImpl client) {
@@ -48,20 +56,49 @@ public class EmergencyService {
             .setLongitude(request.longitude());
         emergency = emergencyRepository.save(emergency);
 
-        ParamedicEmergencyLocation location = new ParamedicEmergencyLocation()
-            .setEmergency(emergency)
-            .setLocationType(EmergencyLocationType.ACCEPTED)
-            .setLatitude(request.latitude())
-            .setLongitude(request.longitude());
-
-        emergencyLocationRepository.save(location);
-        emergency.getParamedicLocations().add(location);
-
-        log.debug("Emergency [{}] location set: lat={}, lon={}", emergency.getId(), location.getLatitude(), location.getLongitude());
-
-        emergencySnapshotService.createSnapshot(emergency, location, request.symptoms());
+        emergencySnapshotService.createSnapshot(emergency, request.symptoms());
 
         log.info("Emergency [{}] created successfully. Initiating paramedic search...", emergency.getId());
         paramedicSearchService.findParamedicForEmergency(emergency);
     }
+
+    @Transactional
+    public void cancelAssignedEmergencyByParamedic(ParamedicCancelEmergencyRequest request, UUID paramedicId) {
+        log.info("Paramedic {} is cancelling assigned emergency", paramedicId);
+
+        Emergency emergency = emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)
+            .orElseThrow(() -> {
+                log.error("No active emergency found for paramedic {}", paramedicId);
+                return new EntityNotFoundException("No assigned emergency found");
+            });
+
+        EmergencyAssignment assignment = emergencyAssignmentRepository
+            .findByEmergencyIdAndParamedicId(emergency.getId(), paramedicId)
+            .orElseThrow(() -> {
+                log.error("No assignment found for paramedic {} and emergency: {}", paramedicId, emergency.getId());
+                return new EntityNotFoundException("No assignment found");
+            });
+
+        CancellationReasonEntity reason = cancellationReasonRepository.findById(request.cancellationReasonId())
+            .orElseThrow(() -> {
+                log.error("Cancellation reason with ID: {} not found", request.cancellationReasonId());
+                return new EntityNotFoundException("Invalid cancellation reason ID");
+            });
+
+        assignment.setCanceledAt(Instant.now());
+        assignment.setCancellationReason(reason);
+        assignment.setCancellationComment(request.cancellationComment());
+
+        paramedicEmergencyLocationService.createAndSaveParamedicEmergencyLocation(
+            request.longitude(), request.latitude(), paramedicId, emergency, EmergencyLocationType.CANCELLED);
+
+        snapshotService.updateSnapshotAfterCancellationByParamedic(emergency, assignment, request.latitude(), request.longitude());
+
+        emergency.setParamedicId(null);
+        emergencyRepository.save(emergency);
+        log.info("Emergency {} unassigned and reassignment started", emergency.getId());
+
+        paramedicSearchService.findParamedicForEmergency(emergency);
+    }
+
 }

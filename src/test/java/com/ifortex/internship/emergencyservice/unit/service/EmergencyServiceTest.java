@@ -3,8 +3,6 @@ package com.ifortex.internship.emergencyservice.unit.service;
 import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyRequest;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
-import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
-import com.ifortex.internship.emergencyservice.repository.EmergencyLocationRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.service.EmergencyService;
 import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
@@ -40,7 +38,6 @@ class EmergencyServiceTest {
     @Mock private EmergencyRepository emergencyRepository;
     @Mock private ParamedicSearchService paramedicSearchService;
     @Mock private EmergencySnapshotService emergencySnapshotService;
-    @Mock private EmergencyLocationRepository emergencyLocationRepository;
     @InjectMocks private EmergencyService emergencyService;
 
     @Mock private UserDetailsImpl client;
@@ -67,20 +64,17 @@ class EmergencyServiceTest {
             .thenReturn(false);
         when(emergencyRepository.save(any(Emergency.class))).thenReturn(emergency);
 
-        doNothing().when(emergencySnapshotService).createSnapshot(any(Emergency.class), any(ParamedicEmergencyLocation.class), anyList());
+        doNothing().when(emergencySnapshotService).createSnapshot(any(Emergency.class), anyList());
         doNothing().when(paramedicSearchService).findParamedicForEmergency(any(Emergency.class));
 
         emergencyService.createEmergency(request, client);
 
         verify(emergencyRepository, times(1)).save(any(Emergency.class));
-        verify(emergencyLocationRepository, times(1)).save(any(ParamedicEmergencyLocation.class));
 
         ArgumentCaptor<Emergency> emergencyCaptor = ArgumentCaptor.forClass(Emergency.class);
-        ArgumentCaptor<ParamedicEmergencyLocation> locationCaptor = ArgumentCaptor.forClass(ParamedicEmergencyLocation.class);
         ArgumentCaptor<List> symptomsCaptor = ArgumentCaptor.forClass(List.class);
         verify(emergencySnapshotService, times(1)).createSnapshot(
             emergencyCaptor.capture(),
-            locationCaptor.capture(),
             symptomsCaptor.capture()
         );
         assertEquals(emergency, emergencyCaptor.getValue());
@@ -95,7 +89,7 @@ class EmergencyServiceTest {
         InvalidRequestException ex = assertThrows(InvalidRequestException.class, () -> emergencyService.createEmergency(request, client));
         assertEquals("You already have an ongoing emergency.", ex.getMessage());
         verify(emergencyRepository, never()).save(any(Emergency.class));
-        verify(emergencySnapshotService, never()).createSnapshot(any(), any(), any());
+        verify(emergencySnapshotService, never()).createSnapshot(any(), any());
         verify(paramedicSearchService, never()).findParamedicForEmergency(any());
     }
 }

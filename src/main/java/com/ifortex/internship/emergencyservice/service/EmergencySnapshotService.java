@@ -6,14 +6,19 @@ import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyVi
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserDiseaseDto;
+import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationType;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyAssignment;
 import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
+import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyAssignmentSnapshot;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
+import com.ifortex.internship.emergencyservice.model.snapshot.ParamedicEmergencyLocationSnapshot;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.UserAllergyRepository;
 import com.ifortex.internship.emergencyservice.repository.UserDiseaseRepository;
+import com.ifortex.internship.emergencyservice.util.EmergencyAssignmentMapper;
 import com.ifortex.internship.emergencyservice.util.EmergencyLocationMapper;
 import com.ifortex.internship.emergencyservice.util.EmergencySnapshotMapper;
 import com.ifortex.internship.emergencyservice.util.UserAllergyMapper;
@@ -27,6 +32,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,10 +62,11 @@ public class EmergencySnapshotService {
     UserDiseaseRepository userDiseaseRepository;
     EmergencyLocationMapper emergencyLocationMapper;
     EmergencySnapshotMapper emergencySnapshotMapper;
+    EmergencyAssignmentMapper emergencyAssignmentMapper;
     EmergencySnapshotRepository emergencySnapshotRepository;
 
     @Transactional
-    public void createSnapshot(Emergency emergency, ParamedicEmergencyLocation location, List<UUID> symptomsIds) {
+    public void createSnapshot(Emergency emergency, List<UUID> symptomsIds) {
         UUID clientId = emergency.getClientId();
         String firstName = authenticationFacade.getUserFirstNameFromAuthentication();
         Objects.requireNonNull(firstName, "First name is missing in security context");
@@ -77,7 +85,7 @@ public class EmergencySnapshotService {
             .setClientFirstName(firstName)
             .setLatitude(emergency.getLatitude())
             .setLongitude(emergency.getLongitude())
-            .setParamedicLocations(List.of(emergencyLocationMapper.toSnapshot(location)))
+            .setParamedicLocations(new ArrayList<>())
             .setSymptoms(symptoms)
             .setAllergies(userAllergies)
             .setDiseases(userDiseases);
@@ -187,6 +195,88 @@ public class EmergencySnapshotService {
             log.info("No ongoing emergency assigned to paramedic {}", paramedicId);
         }
         return emergencySnapshotOpt.map(emergencySnapshotMapper::toParamedicViewDto);
+    }
+
+    @Transactional
+    public void updateSnapshotAfterCancellationByParamedic(Emergency emergency,
+                                                           EmergencyAssignment assignment,
+                                                           BigDecimal latitude,
+                                                           BigDecimal longitude) {
+        log.info("Updating snapshot with canceled assignment for emergency {}", emergency.getId());
+
+        String emergencyId = emergency.getId().toString();
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergencyId);
+        snapshot.setParamedicId(null);
+
+        ParamedicEmergencyLocationSnapshot locationSnapshot = new ParamedicEmergencyLocationSnapshot()
+            .setEmergencyId(emergency.getId())
+            .setParamedicId(assignment.getParamedicId())
+            .setLatitude(latitude)
+            .setLongitude(longitude)
+            .setTimestamp(Instant.now())
+            .setLocationType(EmergencyLocationType.CANCELLED);
+
+        List<ParamedicEmergencyLocationSnapshot> locations = snapshot.getParamedicLocations();
+        if (locations == null) {
+            locations = new ArrayList<>();
+            snapshot.setParamedicLocations(locations);
+        }
+        locations.add(locationSnapshot);
+        log.debug("Cancellation Location added to snapshot for emergency: {}", emergencyId);
+
+        EmergencyAssignmentSnapshot assignmentSnapshot = EmergencyAssignmentSnapshot.builder()
+            .id(assignment.getId())
+            .emergencyId(emergency.getId())
+            .paramedicId(assignment.getParamedicId())
+            .assignedAt(assignment.getAssignedAt())
+            .canceledAt(Instant.now())
+            .cancellationReason(assignment.getCancellationReason().getDescription())
+            .cancellationComment(assignment.getCancellationComment())
+            .build();
+
+        List<EmergencyAssignmentSnapshot> assignmentSnapshots = snapshot.getAssignments();
+        if (assignmentSnapshots == null) {
+            assignmentSnapshots = new ArrayList<>();
+            snapshot.setAssignments(assignmentSnapshots);
+        }
+        assignmentSnapshots.add(assignmentSnapshot);
+
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot updated with canceled assignment for emergency {}", emergencyId);
+    }
+
+    public void updateEmergencySnapshotAfterParamedicAssign(Emergency emergency,
+                                                            EmergencyAssignment assignment,
+                                                            ParamedicEmergencyLocation paramedicEmergencyLocation) {
+
+        EmergencySnapshot snapshot = emergencySnapshotRepository.findById(emergency.getId().toString())
+            .orElseThrow(() -> {
+                log.error("Emergency [{}] snapshot not found", emergency.getId());
+                return new EntityNotFoundException("Emergency snapshot not found");
+            });
+        log.debug("Updating snapshot for emergency {}", emergency.getId());
+        snapshot.setParamedicId(emergency.getParamedicId());
+
+        EmergencyAssignmentSnapshot assignmentSnapshot = emergencyAssignmentMapper.toSnapshot(assignment);
+        if (snapshot.getAssignments() == null) {
+            snapshot.setAssignments(new ArrayList<>());
+        }
+        snapshot.getAssignments().add(assignmentSnapshot);
+        log.debug("Added assignment snapshot for paramedic {} to emergency {}", assignment.getParamedicId(), emergency.getId());
+
+        var snapshotLocation = emergencyLocationMapper.toSnapshot(paramedicEmergencyLocation);
+        snapshot.getParamedicLocations().add(snapshotLocation);
+
+        emergencySnapshotRepository.save(snapshot);
+        log.debug("Snapshot for emergency {} updated successfully", emergency.getId());
+    }
+
+    private EmergencySnapshot getEmergencySnapshotByEmergencyId(String emergencyId) {
+        return emergencySnapshotRepository.findById(emergencyId)
+            .orElseThrow(() -> {
+                log.error("Snapshot not found for emergency: {}", emergencyId);
+                return new EntityNotFoundException("Snapshot not found for emergency " + emergencyId);
+            });
     }
 
     private Emergency getEmergencyByClientIdAndStatus(UUID clientId, EmergencyStatus status) {

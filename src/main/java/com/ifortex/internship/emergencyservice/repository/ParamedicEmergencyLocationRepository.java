@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface EmergencyLocationRepository extends JpaRepository<ParamedicEmergencyLocation, Long> {
+public interface ParamedicEmergencyLocationRepository extends JpaRepository<ParamedicEmergencyLocation, Long> {
 }

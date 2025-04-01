@@ -4,7 +4,11 @@ import com.ifortex.internship.emergencyservice.model.emergency.EmergencyAssignme
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+import java.util.UUID;
+
 @Repository
 public interface EmergencyAssignmentRepository extends JpaRepository<EmergencyAssignment, Long> {
 
+    Optional<EmergencyAssignment> findByEmergencyIdAndParamedicId(UUID emergencyId, UUID paramedicId);
 }
