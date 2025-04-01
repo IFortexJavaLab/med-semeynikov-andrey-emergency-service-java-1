@@ -24,7 +24,15 @@ public interface ParamedicLocationRepository extends JpaRepository<ParamedicLoca
             )
         ) <= :radius
           AND paramedic_id NOT IN (
-              SELECT paramedic_id FROM emergency WHERE status = 'ONGOING' AND paramedic_id IS NOT NULL
+              SELECT paramedic_id
+              FROM emergency
+              WHERE status = 'ONGOING' AND paramedic_id IS NOT NULL
+          )
+          AND paramedic_id NOT IN (
+              SELECT paramedic_id
+              FROM emergency_assignment
+              WHERE emergency_id = :emergencyId
+                AND canceled_at IS NOT NULL
           )
         ORDER BY (
             6371 * acos(
@@ -38,9 +46,7 @@ public interface ParamedicLocationRepository extends JpaRepository<ParamedicLoca
     Optional<ParamedicLocation> findNearestAvailableParamedicInRadius(
         @Param("lat") BigDecimal latitude,
         @Param("lon") BigDecimal longitude,
-        @Param("radius") double radiusInKm
+        @Param("radius") double radiusInKm,
+        @Param("emergencyId") UUID emergencyId
     );
-
-    //todo add index
-    // add where on emergency assigment to search through new medics
 }
