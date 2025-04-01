@@ -1,5 +1,6 @@
 package com.ifortex.internship.emergencyservice.service;
 
+import com.ifortex.internship.emergencyservice.dto.request.AdminCompleteEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CompleteEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.ParamedicCancelEmergencyRequest;
@@ -142,5 +143,40 @@ public class EmergencyService {
         log.info("Emergency [{}] marked as FINISHED with resolution [{}]", emergency.getId(), resolution.getCode());
 
         snapshotService.updateSnapshotAfterCompletion(emergency, paramedicLocation, resolution);
+    }
+
+    @Transactional
+    public void finishEmergencyByAdmin(UUID emergencyId, AdminCompleteEmergencyRequest request, UUID adminId) {
+        log.info("Admin: [{}] is completing emergency [{}]", adminId, emergencyId);
+
+        Emergency emergency = emergencyRepository.findById(emergencyId)
+            .orElseThrow(() -> {
+                log.error("Emergency with ID: {} not found", emergencyId);
+                return new EntityNotFoundException("Emergency not found");
+            });
+
+        if (emergency.getStatus() != EmergencyStatus.ONGOING) {
+            throw new InvalidRequestException("Only ongoing emergencies can be completed");
+        }
+        if (emergency.getParamedicId() != null) {
+            throw new InvalidRequestException("Emergency already assigned to a paramedic");
+        }
+
+        EmergencyResolutionEntity resolution = emergencyResolutionRepository.findById(request.emergencyResolutionId())
+            .orElseThrow(() -> new EntityNotFoundException("Resolution not found"));
+
+        if (resolution.isRequiresComment() &&
+            (request.resolutionExplanation() == null || request.resolutionExplanation().isBlank())) {
+            throw new InvalidRequestException("Explanation is required for this resolution");
+        }
+
+        emergency.setStatus(EmergencyStatus.FINISHED_BY_ADMIN);
+        emergency.setResolution(resolution);
+        emergency.setResolutionExplanation(request.resolutionExplanation());
+        emergencyRepository.save(emergency);
+
+        log.info("Emergency {} manually marked as FINISHED_BY_ADMIN", emergencyId);
+
+        snapshotService.updateSnapshotAfterAdminFinish(emergency, resolution);
     }
 }

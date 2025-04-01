@@ -297,6 +297,22 @@ public class EmergencySnapshotService {
         log.info("Snapshot updated for completed emergency {}", emergencyId);
     }
 
+    @Transactional
+    public void updateSnapshotAfterAdminFinish(Emergency emergency, EmergencyResolutionEntity resolution) {
+        String emergencyId = emergency.getId().toString();
+        log.info("Updating snapshot for emergency [{}] manually finished by admin", emergencyId);
+
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergencyId)
+            .setStatus(EmergencyStatus.FINISHED_BY_ADMIN)
+            .setResolution(resolution.getDescription())
+            .setResolutionExplanation(emergency.getResolutionExplanation())
+            .setClosedAt(Instant.now());
+        snapshot.setDuration(Duration.between(snapshot.getCreatedAt(), snapshot.getClosedAt()));
+
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot updated after manual admin completion for emergency [{}]", emergencyId);
+    }
+
     private EmergencySnapshot getEmergencySnapshotByEmergencyId(String emergencyId) {
         return emergencySnapshotRepository.findById(emergencyId)
             .orElseThrow(() -> {

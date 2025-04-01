@@ -10,7 +10,6 @@ import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.ParamedicLocationRepository;
 import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -47,15 +46,19 @@ public class ParamedicSearchService {
     private final ParamedicEmergencyLocationService paramedicEmergencyLocationService;
 
     @Async
-    @Transactional
     public void findParamedicForEmergency(Emergency emergency) {
         BigDecimal latitude = emergency.getLatitude();
         BigDecimal longitude = emergency.getLongitude();
+        UUID emergencyId = emergency.getId();
 
         log.info("Starting paramedic search for emergency [{}], location: ({}, {})", emergency.getId(), latitude, longitude);
 
         double radius = defaultRadius;
         for (int i = 0; i < maxAttempts; i++) {
+            if (shouldAbort(emergencyId)) {
+                log.info("Aborting search: emergency [{}] is no longer active", emergencyId);
+                return;
+            }
             log.debug("Attempt {}: searching paramedic within radius {} km", i + 1, radius);
             Optional<ParamedicLocation>
                 found =
@@ -75,6 +78,11 @@ public class ParamedicSearchService {
         log.info("Switching to extended search. Radius increased to {}. Emergency [{}]", radius, emergency.getId());
 
         while (Instant.now().isBefore(timeout)) {
+            if (shouldAbort(emergencyId)) {
+                log.warn("Aborting extended search: emergency [{}] is no longer active", emergencyId);
+                return;
+            }
+
             log.debug("Extended search: trying to find paramedic within radius {} km. Emergency [{}]", radius, emergency.getId());
             Optional<ParamedicLocation>
                 found =
@@ -87,22 +95,26 @@ public class ParamedicSearchService {
             sleep(baseDelay);
         }
 
-        emergency.setStatus(EmergencyStatus.RESERVE_HANDLED);
-        emergencyRepository.save(emergency);
+        if (!shouldAbort(emergencyId)) {
+            emergency.setStatus(EmergencyStatus.RESERVE_HANDLED);
+            emergencyRepository.save(emergency);
 
-        var emergencySnapshot = emergencySnapshotRepository.findById(emergency.getId().toString())
-            .orElseThrow(() -> {
-                log.error("Emergency [{}] not found", emergency.getId());
-                return new EntityNotFoundException(String.format("Emergency [%s] not found", emergency.getId()));
-            });
+            var emergencySnapshot = emergencySnapshotRepository.findById(emergency.getId().toString())
+                .orElseThrow(() -> {
+                    log.error("Emergency [{}] not found", emergency.getId());
+                    return new EntityNotFoundException(String.format("Emergency [%s] not found", emergency.getId()));
+                });
 
-        emergencySnapshot.setStatus(emergency.getStatus()).setClosedAt(Instant.now());
-        emergencySnapshotRepository.save(emergencySnapshot);
+            emergencySnapshot.setStatus(emergency.getStatus()).setClosedAt(Instant.now());
+            emergencySnapshotRepository.save(emergencySnapshot);
 
-        log.info("MOCK. Sent request to reserve team service");
+            log.info("MOCK. Sent request to reserve team service");
 
-        log.info("Emergency [{}] resolved by reserve team. No paramedic found in {} minutes", emergency.getId(),
-            extendedSearchDuration.toMinutes());
+            log.info("Emergency [{}] resolved by reserve team. No paramedic found in {} minutes", emergency.getId(),
+                extendedSearchDuration.toMinutes());
+        } else {
+            log.warn("Skipping reserve update: emergency [{}] already completed", emergencyId);
+        }
     }
 
     private void assign(ParamedicLocation paramedicLocation, Emergency emergency) {
@@ -144,5 +156,11 @@ public class ParamedicSearchService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    private boolean shouldAbort(UUID emergencyId) {
+        return emergencyRepository.findById(emergencyId)
+            .map(e -> e.getStatus() != EmergencyStatus.ONGOING)
+            .orElse(true);
     }
 }
