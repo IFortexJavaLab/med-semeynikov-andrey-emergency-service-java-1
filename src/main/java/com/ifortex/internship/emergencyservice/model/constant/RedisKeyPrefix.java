@@ -1,12 +1,15 @@
 package com.ifortex.internship.emergencyservice.model.constant;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.experimental.FieldDefaults;
 
 @Getter
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum RedisKeyPrefix {
-    LOCATION_PARAMEDIC("location:paramedic:");
+    LOCATION("emergency:paramedic:");
 
-    private final String prefix;
+    String prefix;
 }

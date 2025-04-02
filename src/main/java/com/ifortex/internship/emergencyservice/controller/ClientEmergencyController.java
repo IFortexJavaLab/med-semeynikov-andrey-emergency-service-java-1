@@ -1,5 +1,6 @@
 package com.ifortex.internship.emergencyservice.controller;
 
+import com.ifortex.internship.emergencyservice.dto.request.CancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.UpdateEmergencySymptomsRequest;
 import com.ifortex.internship.emergencyservice.dto.response.EmergencySymptomListDto;
@@ -22,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -85,6 +87,19 @@ public class ClientEmergencyController {
         log.info("User [{}] requests to remove symptoms for current emergency", client.getAccountId());
         emergencySnapshotService.deleteSymptomsForCurrentEmergency(request, client.getAccountId());
         log.info("Symptoms removed successfully for current emergency for user: {}", client.getAccountId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Cancel ongoing emergency",
+        description = "Allows client to cancel their current emergency request"
+    )
+    @PutMapping("current/cancel")
+    public ResponseEntity<Void> cancelCurrentEmergency(
+        @AuthenticationPrincipal UserDetailsImpl client,
+        @RequestBody CancelEmergencyRequest request
+    ) {
+        emergencyService.cancelEmergencyByClient(request, client.getAccountId());
         return ResponseEntity.noContent().build();
     }
 }

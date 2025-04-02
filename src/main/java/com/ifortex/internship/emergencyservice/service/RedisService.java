@@ -8,7 +8,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +19,13 @@ public class RedisService {
     RedisTemplate<String, GeoLocationDto> geoRedisTemplate;
 
     public void saveLocation(GeoLocationDto location) {
-        String key = RedisKeyPrefix.LOCATION_PARAMEDIC.getPrefix() + location.paramedicId();
-        geoRedisTemplate.opsForValue().set(key, location, Duration.ofMinutes(5));
+        String key = RedisKeyPrefix.LOCATION.getPrefix() + location.emergencyId() + ":" + location.paramedicId();
+        geoRedisTemplate.opsForValue().set(key, location);
+    }
+
+    public Optional<GeoLocationDto> getLocation(UUID emergencyId, UUID paramedicId) {
+        String key = RedisKeyPrefix.LOCATION.getPrefix() + emergencyId + ":" + paramedicId;
+        GeoLocationDto location = geoRedisTemplate.opsForValue().get(key);
+        return Optional.ofNullable(location);
     }
 }

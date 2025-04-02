@@ -20,8 +20,9 @@ public class GeoLocationWebSocketController {
     public void receiveLocation(GeoLocationDto location) {
         redisService.saveLocation(location);
 
-        log.trace("Received location for {}: lat={}, lng={}",
+        log.trace("Received location for paramedic: {}, emergency: {}. lat={}, lng={}",
             location.paramedicId(),
+            location.emergencyId(),
             location.latitude(),
             location.longitude()
         );
