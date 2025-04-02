@@ -3,11 +3,13 @@ package com.ifortex.internship.emergencyservice.dto.request;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
 public record ParamedicCancelEmergencyRequest(
     @NotNull(message = "Cancellation reason is required") Long cancellationReasonId,
+    @Size(message = "Comment can't be more than 1000 symbols", max = 1000)
     String cancellationComment,
     @NotNull(message = "Latitude is required")
     @DecimalMin(value = "-90.0", message = "Latitude must be greater than or equal to -90.0")

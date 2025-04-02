@@ -2,6 +2,7 @@ package com.ifortex.internship.emergencyservice.controller;
 
 import com.ifortex.internship.emergencyservice.dto.request.CancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyRequest;
+import com.ifortex.internship.emergencyservice.dto.request.FeedbackRequest;
 import com.ifortex.internship.emergencyservice.dto.request.UpdateEmergencySymptomsRequest;
 import com.ifortex.internship.emergencyservice.dto.response.EmergencySymptomListDto;
 import com.ifortex.internship.emergencyservice.service.EmergencyService;
@@ -22,6 +23,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Validated
@@ -96,10 +99,25 @@ public class ClientEmergencyController {
     )
     @PutMapping("current/cancel")
     public ResponseEntity<Void> cancelCurrentEmergency(
-        @AuthenticationPrincipal UserDetailsImpl client,
-        @RequestBody CancelEmergencyRequest request
+        @RequestBody CancelEmergencyRequest request,
+        @AuthenticationPrincipal UserDetailsImpl client
     ) {
         emergencyService.cancelEmergencyByClient(request, client.getAccountId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Leave feedback for emergency",
+        description = "Allows client to leave feedback for the completed emergency"
+    )
+    @PostMapping("{emergencyId}/feedback")
+    public ResponseEntity<Void> leaveFeedback(
+        @RequestBody FeedbackRequest request,
+        @PathVariable(name = "emergencyId") UUID emergencyId,
+        @AuthenticationPrincipal UserDetailsImpl client
+    ) {
+        log.info("Request to leave feedback from client: [{}] for emergency: [{}]", client.getAccountId(), emergencyId);
+        emergencyService.leaveFeedback(emergencyId, request, client.getAccountId());
         return ResponseEntity.noContent().build();
     }
 }

@@ -18,7 +18,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -52,7 +51,9 @@ public class EmergencyFeedback {
     @Column(nullable = false, updatable = false)
     Instant createdAt;
 
-    @UpdateTimestamp
-    @Column(nullable = false)
-    Instant updatedAt;
+    public EmergencyFeedback(Emergency emergency, int grade, String comment) {
+        this.emergency = emergency;
+        this.grade = grade;
+        this.comment = comment;
+    }
 }

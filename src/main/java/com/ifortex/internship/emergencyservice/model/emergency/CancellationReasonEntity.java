@@ -1,7 +1,10 @@
 package com.ifortex.internship.emergencyservice.model.emergency;
 
+import com.ifortex.internship.emergencyservice.model.constant.CancellationReason;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -28,8 +31,8 @@ public class CancellationReasonEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    String code;
+    @Enumerated(EnumType.STRING)
+    CancellationReason code;
 
     @Column(nullable = false)
     String description;

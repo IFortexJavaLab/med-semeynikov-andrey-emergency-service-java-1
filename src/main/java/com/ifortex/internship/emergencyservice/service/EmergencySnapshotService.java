@@ -10,9 +10,11 @@ import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationT
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyAssignment;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyFeedback;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyResolutionEntity;
 import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyAssignmentSnapshot;
+import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyFeedbackSnapshot;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
 import com.ifortex.internship.emergencyservice.model.snapshot.ParamedicEmergencyLocationSnapshot;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
@@ -372,5 +374,22 @@ public class EmergencySnapshotService {
             snapshot.setParamedicLocations(new ArrayList<>());
         }
         snapshot.getParamedicLocations().add(locationSnapshot);
+    }
+
+    public void updateSnapshotAfterFeedback(EmergencyFeedback feedback) {
+        UUID emergencyId = feedback.getEmergency().getId();
+        log.debug("Adding feedback for emergency: [{}] to the snapshot", emergencyId);
+
+        var snapshot = getEmergencySnapshotByEmergencyId(emergencyId.toString());
+        EmergencyFeedbackSnapshot
+            feedbackSnapshot = EmergencyFeedbackSnapshot.builder()
+            .id(feedback.getId())
+            .emergencyId(emergencyId)
+            .grade(feedback.getGrade())
+            .createdAt(feedback.getCreatedAt())
+            .build();
+        snapshot.setFeedback(feedbackSnapshot);
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot for emergency: [{}] updated successfully after adding feedback", emergencyId);
     }
 }

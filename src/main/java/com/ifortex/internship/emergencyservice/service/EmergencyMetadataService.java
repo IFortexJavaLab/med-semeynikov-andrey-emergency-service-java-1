@@ -23,7 +23,7 @@ public class EmergencyMetadataService {
 
     public List<EmergencyResolutionDto> getAllEmergencyResolutions() {
         List<EmergencyResolutionDto> result = emergencyResolutionRepository.findAll().stream()
-            .map(r -> new EmergencyResolutionDto(r.getId(), r.getCode(), r.getDescription(), r.isRequiresComment()))
+            .map(r -> new EmergencyResolutionDto(r.getId(), r.getCode().toString(), r.getDescription(), r.isRequiresComment()))
             .toList();
         log.debug("Loaded {} emergency resolutions", result.size());
         return result;
@@ -31,7 +31,7 @@ public class EmergencyMetadataService {
 
     public List<CancellationReasonDto> getAllCancellationReasons() {
         List<CancellationReasonDto> result = cancellationReasonRepository.findAll().stream()
-            .map(r -> new CancellationReasonDto(r.getId(), r.getCode(), r.getDescription(), r.isRequiresComment()))
+            .map(r -> new CancellationReasonDto(r.getId(), r.getCode().toString(), r.getDescription(), r.isRequiresComment()))
             .toList();
         log.debug("Loaded {} cancellation reasons", result.size());
         return result;

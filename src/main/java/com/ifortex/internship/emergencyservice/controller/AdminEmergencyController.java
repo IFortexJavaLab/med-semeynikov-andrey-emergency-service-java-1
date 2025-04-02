@@ -40,13 +40,13 @@ public class AdminEmergencyController {
         summary = "Complete emergency manually",
         description = "Allows admin to manually complete an emergency that has no assigned paramedic"
     )
-    @PutMapping("/{id}/complete")
+    @PutMapping("/{emergencyId}/complete")
     public ResponseEntity<Void> finishEmergencyByAdmin(
-        @PathVariable UUID id,
+        @PathVariable UUID emergencyId,
         @Valid @RequestBody AdminCompleteEmergencyRequest request,
         @AuthenticationPrincipal UserDetailsImpl admin
     ) {
-        emergencyService.finishEmergencyByAdmin(id, request, admin.getAccountId());
+        emergencyService.finishEmergencyByAdmin(emergencyId, request, admin.getAccountId());
         return ResponseEntity.noContent().build();
     }
 }

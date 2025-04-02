@@ -4,14 +4,18 @@ import com.ifortex.internship.emergencyservice.dto.request.AdminCompleteEmergenc
 import com.ifortex.internship.emergencyservice.dto.request.CancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CompleteEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.CreateEmergencyRequest;
+import com.ifortex.internship.emergencyservice.dto.request.FeedbackRequest;
 import com.ifortex.internship.emergencyservice.dto.request.ParamedicCancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationType;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyFeedback;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyResolutionEntity;
+import com.ifortex.internship.emergencyservice.repository.EmergencyFeedbackRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencyResolutionRepository;
 import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
+import com.ifortex.internship.medstarter.exception.custom.ForbiddenActionException;
 import com.ifortex.internship.medstarter.exception.custom.InvalidRequestException;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
 import jakarta.transaction.Transactional;
@@ -29,10 +33,14 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class EmergencyService {
 
+    public static final String LOG_EMERGENCY_WITH_ID_NOT_FOUND = "Emergency with ID: {} not found";
+    public static final String EXCEPTION_EMERGENCY_NOT_FOUND = "Emergency not found";
+
     EmergencyRepository emergencyRepository;
     EmergencySnapshotService snapshotService;
     ParamedicSearchService paramedicSearchService;
     EmergencyCommandService emergencyCommandService;
+    EmergencyFeedbackRepository emergencyFeedbackRepository;
     EmergencyResolutionRepository emergencyResolutionRepository;
     ParamedicEmergencyLocationService paramedicEmergencyLocationService;
 
@@ -86,8 +94,8 @@ public class EmergencyService {
 
         Emergency emergency = emergencyRepository.findById(emergencyId)
             .orElseThrow(() -> {
-                log.error("Emergency with ID: {} not found", emergencyId);
-                return new EntityNotFoundException("Emergency not found");
+                log.error(LOG_EMERGENCY_WITH_ID_NOT_FOUND, emergencyId);
+                return new EntityNotFoundException(EXCEPTION_EMERGENCY_NOT_FOUND);
             });
 
         if (emergency.getStatus() != EmergencyStatus.ONGOING) {
@@ -136,4 +144,40 @@ public class EmergencyService {
         snapshotService.updateSnapshotAfterClientCancellation(emergency);
     }
 
+    @Transactional
+    public void leaveFeedback(UUID emergencyId, FeedbackRequest request, UUID clientId) {
+        log.info("Leaving feedback from client: [{}] for emergency: [{}]", clientId, emergencyId);
+
+        Emergency emergency = emergencyRepository.findById(emergencyId)
+            .orElseThrow(() -> {
+                log.error(LOG_EMERGENCY_WITH_ID_NOT_FOUND, emergencyId);
+                return new EntityNotFoundException(EXCEPTION_EMERGENCY_NOT_FOUND);
+            });
+
+        boolean emergencyBelongsToClient = emergency.getClientId().equals(clientId);
+        boolean feedbackAlreadyExists = emergency.getFeedback() != null;
+        boolean isCompleted = emergency.getStatus().equals(EmergencyStatus.COMPLETED);
+        if (!emergencyBelongsToClient) {
+            log.error("Client: [{}] try to get not his own emergency: [{}]", clientId, emergencyId);
+            throw new ForbiddenActionException("You can't leave feedback for this emergency");
+        }
+
+        if (!isCompleted) {
+            log.error("Client: [{}] try to leave feedback to the not [{}] emergency [{}]", clientId, EmergencyStatus.COMPLETED, emergencyId);
+            throw new InvalidRequestException("You can't leave feedback. Emergency isn't completed");
+        }
+
+        if (feedbackAlreadyExists) {
+            log.error("Feedback already exists for emergency: [{}]", emergencyId);
+            throw new InvalidRequestException("Feedback already exists for this emergency");
+        }
+
+        var feedback = new EmergencyFeedback(emergency, request.grade(), request.comment());
+        feedback = emergencyFeedbackRepository.save(feedback);
+        emergency.setFeedback(feedback);
+        emergencyRepository.save(emergency);
+        log.info("Emergency feedback created and saved for emergency: [{}] by client:[{}]. Updating snapshot...", emergencyId, clientId);
+
+        snapshotService.updateSnapshotAfterFeedback(feedback);
+    }
 }
