@@ -24,5 +24,4 @@ public class EmergencyFeedbackSnapshot {
     int grade;
     String comment;
     Instant createdAt;
-    Instant updatedAt;
 }

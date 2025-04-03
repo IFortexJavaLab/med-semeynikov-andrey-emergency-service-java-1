@@ -89,7 +89,7 @@ public class EmergencyCommandService {
         assignment.setCancellationComment(request.cancellationComment());
 
         paramedicEmergencyLocationService.createAndSaveParamedicEmergencyLocation(
-            request.longitude(), request.latitude(), paramedicId, emergency, EmergencyLocationType.CANCELLED);
+            request.longitude(), request.latitude(), paramedicId, emergency, EmergencyLocationType.CANCELLED_BY_PARAMEDIC);
 
         snapshotService.updateSnapshotAfterCancellationByParamedic(emergency, assignment, request.latitude(), request.longitude());
 

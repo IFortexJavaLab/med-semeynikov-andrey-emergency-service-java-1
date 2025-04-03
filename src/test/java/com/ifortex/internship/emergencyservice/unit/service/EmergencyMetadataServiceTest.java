@@ -2,6 +2,8 @@ package com.ifortex.internship.emergencyservice.unit.service;
 
 import com.ifortex.internship.emergencyservice.dto.response.CancellationReasonDto;
 import com.ifortex.internship.emergencyservice.dto.response.EmergencyResolutionDto;
+import com.ifortex.internship.emergencyservice.model.constant.CancellationReason;
+import com.ifortex.internship.emergencyservice.model.constant.EmergencyResolution;
 import com.ifortex.internship.emergencyservice.model.emergency.CancellationReasonEntity;
 import com.ifortex.internship.emergencyservice.model.emergency.EmergencyResolutionEntity;
 import com.ifortex.internship.emergencyservice.repository.CancellationReasonRepository;
@@ -46,29 +48,29 @@ class EmergencyMetadataServiceTest {
     void setUp() {
         resolution1 = EmergencyResolutionEntity.builder()
             .id(1L)
-            .code("HOSPITALIZED_WITH_CONSENT")
-            .description("Hospitalized with consent")
+            .code(EmergencyResolution.HOSPITALIZED_WITH_CONSENT)
+            .description(EmergencyResolution.HOSPITALIZED_WITH_CONSENT.getDescription())
             .requiresComment(false)
             .build();
 
         resolution2 = EmergencyResolutionEntity.builder()
             .id(2L)
-            .code("FALSE_ALARM")
-            .description("False alarm")
+            .code(EmergencyResolution.FALSE_ALARM)
+            .description(EmergencyResolution.FALSE_ALARM.getDescription())
             .requiresComment(true)
             .build();
 
         reason1 = CancellationReasonEntity.builder()
             .id(1L)
-            .code("BLOCKED_BY_OTHERS")
-            .description("Blocked by others")
+            .code(CancellationReason.BLOCKED_BY_OTHERS)
+            .description(CancellationReason.BLOCKED_BY_OTHERS.getDescription())
             .requiresComment(true)
             .build();
 
         reason2 = CancellationReasonEntity.builder()
             .id(2L)
-            .code("ACCIDENT_ON_WAY")
-            .description("Accident on a way")
+            .code(CancellationReason.ACCIDENT_ON_WAY)
+            .description(CancellationReason.BLOCKED_BY_OTHERS.getDescription())
             .requiresComment(false)
             .build();
     }

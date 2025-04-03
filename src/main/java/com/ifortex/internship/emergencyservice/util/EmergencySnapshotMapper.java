@@ -1,5 +1,7 @@
 package com.ifortex.internship.emergencyservice.util;
 
+import com.ifortex.internship.emergencyservice.dto.response.AdminEmergencyViewDto;
+import com.ifortex.internship.emergencyservice.dto.response.ClientEmergencyViewDto;
 import com.ifortex.internship.emergencyservice.dto.response.EmergencySymptomListDto;
 import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
@@ -21,7 +23,18 @@ public interface EmergencySnapshotMapper {
     @Mapping(target = "symptoms", source = "symptoms", qualifiedByName = "buildSymptomTree")
     @Mapping(target = "userDiseases", source = "diseases")
     @Mapping(target = "userAllergies", source = "allergies")
-    ParamedicEmergencyViewDto toParamedicViewDto(EmergencySnapshot snapshot);
+    ParamedicEmergencyViewDto toParamedicViewDtoOngoing(EmergencySnapshot snapshot);
+
+    @Mapping(target = "symptoms", ignore = true)
+    @Mapping(target = "userDiseases", ignore = true)
+    @Mapping(target = "userAllergies", ignore = true)
+    ParamedicEmergencyViewDto toParamedicViewDtoFinished(EmergencySnapshot snapshot);
+
+    @Mapping(target = "feedback", source = "feedback")
+    ClientEmergencyViewDto toClientViewDto(EmergencySnapshot snapshot);
+
+    @Mapping(target = "symptoms", source = "symptoms", qualifiedByName = "buildSymptomTree")
+    AdminEmergencyViewDto toAdminDto(EmergencySnapshot snapshot);
 
     @Named("buildSymptomTree")
     default List<EmergencySymptomListDto> buildSymptomTree(List<SymptomDto> flatList) {

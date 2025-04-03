@@ -21,7 +21,6 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ParamedicEmergencyLocationSnapshot {
 
-    Long id;
     UUID emergencyId;
     UUID paramedicId;
     EmergencyLocationType locationType;

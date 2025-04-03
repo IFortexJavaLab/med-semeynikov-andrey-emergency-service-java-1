@@ -1,9 +1,9 @@
 package com.ifortex.internship.emergencyservice.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,23 +16,22 @@ import java.util.List;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class ParamedicEmergencyViewDto {
-
+public class ClientEmergencyViewDto {
     String id;
+    EmergencyStatus status;
+    BigDecimal latitude;
+    BigDecimal longitude;
     Instant createdAt;
     Instant closedAt;
     Duration duration;
-    EmergencyStatus status;
-    String clientFirstName;
-    BigDecimal latitude;
-    BigDecimal longitude;
-    List<EmergencySymptomListDto> symptoms;
-    List<UserDiseaseDto> userDiseases;
-    List<UserAllergyDto> userAllergies;
-
-    //todo add BonusApplied in the future
+    String resolution;
+    String resolutionExplanation;
+    String paramedicName;
+    ParamedicLocationViewDto lastParamedicLocation;
+    List<SymptomDto> symptoms;
+    FeedbackDto feedback;
 }

@@ -1,34 +1,31 @@
-package com.ifortex.internship.emergencyservice.model.snapshot;
+package com.ifortex.internship.emergencyservice.dto.response;
 
-import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
-import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
-import com.ifortex.internship.emergencyservice.dto.response.UserDiseaseDto;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
-import jakarta.persistence.Id;
+import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyAssignmentSnapshot;
+import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyFeedbackSnapshot;
+import com.ifortex.internship.emergencyservice.model.snapshot.ParamedicEmergencyLocationSnapshot;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-@Document(collection = "emergency_snapshots")
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
-@Accessors(chain = true)
+@NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EmergencySnapshot {
-
-    @Id
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class AdminEmergencyViewDto {
     String id;
     Instant createdAt;
     Instant closedAt;
@@ -37,17 +34,20 @@ public class EmergencySnapshot {
 
     String clientFirstName;
     String paramedicName;
+
     BigDecimal latitude;
     BigDecimal longitude;
 
     List<ParamedicEmergencyLocationSnapshot> paramedicLocations;
     List<EmergencyAssignmentSnapshot> assignments;
 
-    String resolutionExplanation;
     String resolution;
-    EmergencyFeedbackSnapshot feedback;
+    String resolutionExplanation;
 
-    List<SymptomDto> symptoms;
+    EmergencyFeedbackSnapshot feedback;
+    List<EmergencySymptomListDto> symptoms;
     List<UserAllergyDto> allergies;
     List<UserDiseaseDto> diseases;
+
+    ParamedicLocationViewDto currentParamedicLocation;
 }

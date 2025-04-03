@@ -2,7 +2,6 @@ package com.ifortex.internship.emergencyservice.service;
 
 import com.ifortex.internship.emergencyservice.dto.request.UpdateEmergencySymptomsRequest;
 import com.ifortex.internship.emergencyservice.dto.response.EmergencySymptomListDto;
-import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserDiseaseDto;
@@ -43,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -185,25 +183,6 @@ public class EmergencySnapshotService {
     }
 
     @Transactional
-    public Optional<ParamedicEmergencyViewDto> getAssignedEmergency(UUID paramedicId) {
-        log.debug("Fetching assigned emergency for paramedic {}", paramedicId);
-
-        var emergency = emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)
-            .orElseThrow(
-                () -> {
-                    log.error("No ongoing emergency found for paramedic: {}", paramedicId);
-                    return new EntityNotFoundException(EXCEPTION_NO_ONGOING_EMERGENCY_FOUND);
-                }
-            );
-
-        Optional<EmergencySnapshot> emergencySnapshotOpt = emergencySnapshotRepository.findById(emergency.getId().toString());
-        if (emergencySnapshotOpt.isEmpty()) {
-            log.info("No ongoing emergency assigned to paramedic {}", paramedicId);
-        }
-        return emergencySnapshotOpt.map(emergencySnapshotMapper::toParamedicViewDto);
-    }
-
-    @Transactional
     public void updateSnapshotAfterCancellationByParamedic(Emergency emergency,
                                                            EmergencyAssignment assignment,
                                                            BigDecimal latitude,
@@ -212,7 +191,7 @@ public class EmergencySnapshotService {
 
         String emergencyId = emergency.getId().toString();
         EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergencyId);
-        snapshot.setParamedicId(null);
+        snapshot.setParamedicName(null);
 
         ParamedicEmergencyLocationSnapshot locationSnapshot = new ParamedicEmergencyLocationSnapshot()
             .setEmergencyId(emergency.getId())
@@ -220,7 +199,7 @@ public class EmergencySnapshotService {
             .setLatitude(latitude)
             .setLongitude(longitude)
             .setTimestamp(Instant.now())
-            .setLocationType(EmergencyLocationType.CANCELLED);
+            .setLocationType(EmergencyLocationType.CANCELLED_BY_PARAMEDIC);
 
         List<ParamedicEmergencyLocationSnapshot> locations = snapshot.getParamedicLocations();
         if (locations == null) {
@@ -230,31 +209,31 @@ public class EmergencySnapshotService {
         locations.add(locationSnapshot);
         log.debug("Cancellation Location added to snapshot for emergency: {}", emergencyId);
 
-        EmergencyAssignmentSnapshot assignmentSnapshot = EmergencyAssignmentSnapshot.builder()
-            .id(assignment.getId())
-            .emergencyId(emergency.getId())
-            .paramedicId(assignment.getParamedicId())
-            .assignedAt(assignment.getAssignedAt())
-            .canceledAt(Instant.now())
-            .cancellationReason(assignment.getCancellationReason().getDescription())
-            .cancellationComment(assignment.getCancellationComment())
-            .build();
+        EmergencyAssignmentSnapshot assignmentSnapshot = snapshot.getAssignments().stream()
+            .filter(ass -> ass.getId().equals(assignment.getId()))
+            .findFirst()
+            .orElseThrow(() -> new EntityNotFoundException("Assignment snapshot not found for ID: " + assignment.getId()));
 
-        addAssignmentSnapshot(snapshot, assignmentSnapshot);
+        assignmentSnapshot.setCanceledAt(assignment.getCanceledAt());
+        assignmentSnapshot.setCancellationReason(assignment.getCancellationReason().getDescription());
+        assignmentSnapshot.setCancellationComment(assignment.getCancellationComment());
 
         emergencySnapshotRepository.save(snapshot);
         log.info("Snapshot updated with canceled assignment for emergency {}", emergencyId);
     }
 
-    public void updateEmergencySnapshotAfterParamedicAssign(Emergency emergency,
-                                                            EmergencyAssignment assignment,
-                                                            ParamedicEmergencyLocation paramedicEmergencyLocation) {
+    public void updateEmergencySnapshotAfterParamedicAssign(
+        Emergency emergency,
+        EmergencyAssignment assignment,
+        ParamedicEmergencyLocation paramedicEmergencyLocation,
+        String paramedicFirstName) {
 
         EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergency.getId().toString());
         log.debug("Updating snapshot after paramedic: {} assigned for emergency {}", emergency.getParamedicId(), emergency.getId());
-        snapshot.setParamedicId(emergency.getParamedicId());
+        snapshot.setParamedicName(paramedicFirstName);
 
         EmergencyAssignmentSnapshot assignmentSnapshot = emergencyAssignmentMapper.toSnapshot(assignment);
+        assignmentSnapshot.setParamedicName(paramedicFirstName);
         addAssignmentSnapshot(snapshot, assignmentSnapshot);
         log.debug("Added assignment snapshot for paramedic {} to emergency {}", assignment.getParamedicId(), emergency.getId());
 
@@ -329,7 +308,7 @@ public class EmergencySnapshotService {
                 .setLongitude(lastParamedicLocation.longitude())
                 .setTimestamp(lastParamedicLocation.timestamp())
                 .setParamedicId(emergency.getParamedicId())
-                .setLocationType(EmergencyLocationType.CANCELLED);
+                .setLocationType(EmergencyLocationType.CANCELLED_BY_CLIENT);
 
             addLocationSnapshot(snapshot, locationSnapshot);
         }
@@ -337,6 +316,23 @@ public class EmergencySnapshotService {
         emergencySnapshotRepository.save(snapshot);
 
         log.info("Snapshot updated after cancellation by client [{}]", emergency.getClientId());
+    }
+
+    public void updateSnapshotAfterFeedback(EmergencyFeedback feedback) {
+        UUID emergencyId = feedback.getEmergency().getId();
+        log.debug("Adding feedback for emergency: [{}] to the snapshot", emergencyId);
+
+        var snapshot = getEmergencySnapshotByEmergencyId(emergencyId.toString());
+        EmergencyFeedbackSnapshot
+            feedbackSnapshot = EmergencyFeedbackSnapshot.builder()
+            .id(feedback.getId())
+            .emergencyId(emergencyId)
+            .grade(feedback.getGrade())
+            .createdAt(feedback.getCreatedAt())
+            .build();
+        snapshot.setFeedback(feedbackSnapshot);
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot for emergency: [{}] updated successfully after adding feedback", emergencyId);
     }
 
     private EmergencySnapshot getEmergencySnapshotByEmergencyId(String emergencyId) {
@@ -376,20 +372,4 @@ public class EmergencySnapshotService {
         snapshot.getParamedicLocations().add(locationSnapshot);
     }
 
-    public void updateSnapshotAfterFeedback(EmergencyFeedback feedback) {
-        UUID emergencyId = feedback.getEmergency().getId();
-        log.debug("Adding feedback for emergency: [{}] to the snapshot", emergencyId);
-
-        var snapshot = getEmergencySnapshotByEmergencyId(emergencyId.toString());
-        EmergencyFeedbackSnapshot
-            feedbackSnapshot = EmergencyFeedbackSnapshot.builder()
-            .id(feedback.getId())
-            .emergencyId(emergencyId)
-            .grade(feedback.getGrade())
-            .createdAt(feedback.getCreatedAt())
-            .build();
-        snapshot.setFeedback(feedbackSnapshot);
-        emergencySnapshotRepository.save(snapshot);
-        log.info("Snapshot for emergency: [{}] updated successfully after adding feedback", emergencyId);
-    }
 }
