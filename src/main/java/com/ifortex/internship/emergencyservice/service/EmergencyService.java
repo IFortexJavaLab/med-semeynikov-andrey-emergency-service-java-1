@@ -148,9 +148,9 @@ public class EmergencyService {
     public void leaveFeedback(UUID emergencyId, FeedbackRequest request, UUID clientId) {
         log.info("Leaving feedback from client: [{}] for emergency: [{}]", clientId, emergencyId);
 
-        Emergency emergency = emergencyRepository.findById(emergencyId)
+        Emergency emergency = emergencyRepository.findByIdAndClientId(emergencyId, clientId)
             .orElseThrow(() -> {
-                log.error(LOG_EMERGENCY_WITH_ID_NOT_FOUND, emergencyId);
+                log.error("Emergency with ID: {} for client: {} not found", emergencyId, clientId);
                 return new EntityNotFoundException(EXCEPTION_EMERGENCY_NOT_FOUND);
             });
 

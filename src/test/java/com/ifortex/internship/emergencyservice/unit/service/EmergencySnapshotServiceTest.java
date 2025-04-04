@@ -12,6 +12,7 @@ import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.UserAllergyRepository;
 import com.ifortex.internship.emergencyservice.repository.UserDiseaseRepository;
+import com.ifortex.internship.emergencyservice.service.EmergencyHistoryService;
 import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
 import com.ifortex.internship.emergencyservice.service.SymptomService;
 import com.ifortex.internship.emergencyservice.util.EmergencyLocationMapper;
@@ -61,6 +62,7 @@ class EmergencySnapshotServiceTest {
     @Mock AuthenticationFacade authenticationFacade;
 
     @InjectMocks EmergencySnapshotService emergencySnapshotService;
+    @InjectMocks EmergencyHistoryService historyService;
 
     Emergency emergency;
     EmergencySnapshot snapshot;
@@ -197,9 +199,9 @@ class EmergencySnapshotServiceTest {
 
         when(emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)).thenReturn(Optional.of(emergency));
         when(emergencySnapshotRepository.findById(emergency.getId().toString())).thenReturn(Optional.of(snapshot));
-        when(emergencySnapshotMapper.toParamedicViewDto(snapshot)).thenReturn(new ParamedicEmergencyViewDto());
+        when(emergencySnapshotMapper.toParamedicViewDtoOngoing(snapshot)).thenReturn(new ParamedicEmergencyViewDto());
 
-        Optional<ParamedicEmergencyViewDto> result = emergencySnapshotService.getAssignedEmergency(paramedicId);
+        Optional<ParamedicEmergencyViewDto> result = historyService.getCurrentAssignedEmergency(paramedicId);
 
         assertTrue(result.isPresent());
     }
@@ -211,6 +213,6 @@ class EmergencySnapshotServiceTest {
         when(emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () ->
-            emergencySnapshotService.getAssignedEmergency(paramedicId));
+            historyService.getCurrentAssignedEmergency(paramedicId));
     }
 }

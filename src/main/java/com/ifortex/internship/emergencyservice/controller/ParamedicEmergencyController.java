@@ -4,8 +4,8 @@ import com.ifortex.internship.emergencyservice.dto.request.CompleteEmergencyRequ
 import com.ifortex.internship.emergencyservice.dto.request.ParamedicCancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.UpdateParamedicLocationRequest;
 import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
+import com.ifortex.internship.emergencyservice.service.EmergencyHistoryService;
 import com.ifortex.internship.emergencyservice.service.EmergencyService;
-import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
 import com.ifortex.internship.emergencyservice.service.ParamedicLocationService;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,7 +41,7 @@ import java.util.UUID;
 public class ParamedicEmergencyController {
 
     EmergencyService emergencyService;
-    EmergencySnapshotService emergencySnapshotService;
+    EmergencyHistoryService historyService;
     ParamedicLocationService paramedicLocationService;
 
     @Operation(
@@ -52,7 +52,7 @@ public class ParamedicEmergencyController {
     public ResponseEntity<ParamedicEmergencyViewDto> getAssignedEmergency(@AuthenticationPrincipal UserDetailsImpl paramedic) {
         UUID paramedicId = paramedic.getAccountId();
         log.info("Paramedic [{}] requested their assigned emergency", paramedicId);
-        Optional<ParamedicEmergencyViewDto> emergency = emergencySnapshotService.getAssignedEmergency(paramedicId);
+        Optional<ParamedicEmergencyViewDto> emergency = historyService.getCurrentAssignedEmergency(paramedicId);
         return emergency.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 

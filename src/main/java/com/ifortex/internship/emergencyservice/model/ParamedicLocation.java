@@ -30,6 +30,8 @@ public class ParamedicLocation {
     @Id
     UUID paramedicId;
 
+    String paramedicFirstName;
+
     @Column(nullable = false, precision = 10, scale = 6)
     BigDecimal latitude;
 

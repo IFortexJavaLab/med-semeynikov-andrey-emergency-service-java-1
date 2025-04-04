@@ -14,7 +14,7 @@ import java.util.UUID;
 public interface ParamedicLocationRepository extends JpaRepository<ParamedicLocation, UUID> {
 
     @Query(value = """
-        SELECT paramedic_id, latitude, longitude, updated_at
+        SELECT paramedic_id, latitude, longitude, updated_at, paramedic_first_name
         FROM paramedic_location
         WHERE (
             6371 * acos(

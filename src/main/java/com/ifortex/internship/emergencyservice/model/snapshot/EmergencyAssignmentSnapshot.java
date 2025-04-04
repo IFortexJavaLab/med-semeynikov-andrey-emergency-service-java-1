@@ -21,7 +21,7 @@ public class EmergencyAssignmentSnapshot {
 
     UUID id;
     UUID emergencyId;
-    UUID paramedicId;
+    String paramedicName;
     Instant assignedAt;
     Instant canceledAt;
     String cancellationComment;

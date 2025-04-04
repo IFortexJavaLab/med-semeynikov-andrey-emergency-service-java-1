@@ -133,7 +133,10 @@ public class ParamedicSearchService {
 
         emergency.setParamedicId(paramedicId);
         emergencyRepository.save(emergency);
-        snapshotService.updateEmergencySnapshotAfterParamedicAssign(emergency, assignment, paramedicEmergencyLocation);
+        snapshotService.updateEmergencySnapshotAfterParamedicAssign(
+            emergency, assignment,
+            paramedicEmergencyLocation,
+            paramedicLocation.getParamedicFirstName());
 
         log.info("MOCK. Notify paramedic: [{}] about assigned emergency", paramedicId);
 
