@@ -1,10 +1,7 @@
 package com.ifortex.internship.emergencyservice.model.emergency;
 
-import com.ifortex.internship.emergencyservice.model.constant.CancellationReason;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -51,8 +48,9 @@ public class EmergencyAssignment {
 
     Instant canceledAt;
 
-    @Enumerated(EnumType.STRING)
-    CancellationReason cancellationReason;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancellation_reason_id")
+    CancellationReasonEntity cancellationReason;
 
     @Column(columnDefinition = "TEXT")
     String cancellationComment;

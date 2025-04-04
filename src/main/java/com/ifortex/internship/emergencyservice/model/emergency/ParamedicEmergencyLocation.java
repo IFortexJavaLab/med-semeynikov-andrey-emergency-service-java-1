@@ -24,6 +24,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -42,6 +43,9 @@ public class ParamedicEmergencyLocation {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emergency_id", nullable = false)
     Emergency emergency;
+
+    @Column(nullable = false)
+    UUID paramedicId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

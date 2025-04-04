@@ -4,5 +4,6 @@ public enum EmergencyStatus {
     ONGOING,
     CANCELLED,
     COMPLETED,
-    RESERVE_HANDLED
+    RESERVE_HANDLED,
+    FINISHED_BY_ADMIN
 }

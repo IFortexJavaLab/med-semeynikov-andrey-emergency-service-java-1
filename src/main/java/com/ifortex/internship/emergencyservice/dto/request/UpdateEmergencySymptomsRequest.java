@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record UpdateEmergencySymptomsRequest(
+    @NotNull(message = "Symptoms is required")
     @NotEmpty(message = "Symptoms list must not be empty")
     List<@NotNull UUID> symptoms
 ) {

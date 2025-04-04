@@ -1,8 +1,11 @@
 package com.ifortex.internship.emergencyservice.controller;
 
+import com.ifortex.internship.emergencyservice.dto.request.CompleteEmergencyRequest;
+import com.ifortex.internship.emergencyservice.dto.request.ParamedicCancelEmergencyRequest;
 import com.ifortex.internship.emergencyservice.dto.request.UpdateParamedicLocationRequest;
 import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
-import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
+import com.ifortex.internship.emergencyservice.service.EmergencyHistoryService;
+import com.ifortex.internship.emergencyservice.service.EmergencyService;
 import com.ifortex.internship.emergencyservice.service.ParamedicLocationService;
 import com.ifortex.internship.medstarter.security.model.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,7 +40,8 @@ import java.util.UUID;
 @PreAuthorize("hasRole('PARAMEDIC')")
 public class ParamedicEmergencyController {
 
-    EmergencySnapshotService emergencySnapshotService;
+    EmergencyService emergencyService;
+    EmergencyHistoryService historyService;
     ParamedicLocationService paramedicLocationService;
 
     @Operation(
@@ -48,7 +52,7 @@ public class ParamedicEmergencyController {
     public ResponseEntity<ParamedicEmergencyViewDto> getAssignedEmergency(@AuthenticationPrincipal UserDetailsImpl paramedic) {
         UUID paramedicId = paramedic.getAccountId();
         log.info("Paramedic [{}] requested their assigned emergency", paramedicId);
-        Optional<ParamedicEmergencyViewDto> emergency = emergencySnapshotService.getAssignedEmergency(paramedicId);
+        Optional<ParamedicEmergencyViewDto> emergency = historyService.getCurrentAssignedEmergency(paramedicId);
         return emergency.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
@@ -66,4 +70,32 @@ public class ParamedicEmergencyController {
         paramedicLocationService.updateLocation(request, paramedicId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(
+        summary = "Cancel assigned emergency",
+        description = "Allows paramedic to cancel emergency and provide reason")
+    @PutMapping("/assigned/cancel")
+    public ResponseEntity<Void> cancelAssignedEmergency(
+        @Valid @RequestBody ParamedicCancelEmergencyRequest request,
+        @AuthenticationPrincipal UserDetailsImpl paramedic
+    ) {
+        log.info("Request from paramedic {} to cancel assigned emergency", paramedic.getAccountId());
+        emergencyService.cancelAssignedEmergencyByParamedic(request, paramedic.getAccountId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Complete assigned emergency",
+        description = "Allows the assigned paramedic to complete the current emergency"
+    )
+    @PutMapping("/assigned/complete")
+    public ResponseEntity<Void> completeAssignedEmergency(
+        @Valid @RequestBody CompleteEmergencyRequest request,
+        @AuthenticationPrincipal UserDetailsImpl paramedic
+    ) {
+        log.info("Request from paramedic {} to complete assigned emergency", paramedic.getAccountId());
+        emergencyService.completeAssignedEmergency(request, paramedic.getAccountId());
+        return ResponseEntity.noContent().build();
+    }
+
 }

@@ -1,12 +1,11 @@
 package com.ifortex.internship.emergencyservice.model.snapshot;
 
-import com.ifortex.internship.emergencyservice.model.constant.CancellationReason;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
@@ -16,15 +15,15 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Accessors(chain = true)
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class EmergencyAssignmentSnapshot {
 
     UUID id;
     UUID emergencyId;
-    UUID paramedicId;
+    String paramedicName;
     Instant assignedAt;
     Instant canceledAt;
     String cancellationComment;
-    CancellationReason cancellationReason;
+    String cancellationReason;
 }

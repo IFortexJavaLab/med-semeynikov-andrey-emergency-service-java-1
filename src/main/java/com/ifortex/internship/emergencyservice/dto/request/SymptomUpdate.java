@@ -11,10 +11,12 @@ import org.hibernate.validator.constraints.UUID;
 public record SymptomUpdate(
 
     @UUID(message = "Must be a valid symptom ID")
+    @NotNull(message = "Id is required")
     String id,
 
     @NotNull(message = "Symptom name is required")
     @NotEmpty(message = "Symptom name can't be empty")
+    @Size(min = 1, max = 200, message = "Name must be between 1 and 200 characters")
     String name,
 
     @Size(min = 1, max = 200, message = "Advice must be between 1 and 200 characters")

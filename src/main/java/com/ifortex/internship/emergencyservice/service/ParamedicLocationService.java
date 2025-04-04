@@ -20,11 +20,22 @@ public class ParamedicLocationService {
     ParamedicLocationRepository locationRepository;
 
     public void updateLocation(UpdateParamedicLocationRequest request, UUID paramedicId) {
-        ParamedicLocation location = ParamedicLocation.builder()
-            .paramedicId(paramedicId)
-            .latitude(request.latitude())
-            .longitude(request.longitude())
-            .build();
+
+        //todo there can call to accounting to get medic's profile and get name
+
+        var locationOpt = locationRepository.findById(paramedicId);
+        ParamedicLocation location;
+        if (locationOpt.isPresent()) {
+            location = locationOpt.get();
+            location.setLongitude(request.longitude());
+            location.setLatitude(request.latitude());
+        } else {
+            location = ParamedicLocation.builder()
+                .paramedicId(paramedicId)
+                .latitude(request.latitude())
+                .longitude(request.longitude())
+                .build();
+        }
 
         locationRepository.save(location);
         log.info("Updated location for paramedic [{}]: lat={}, lng={}",

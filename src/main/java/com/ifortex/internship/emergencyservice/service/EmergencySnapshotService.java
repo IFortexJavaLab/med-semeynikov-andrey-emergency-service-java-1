@@ -2,22 +2,30 @@ package com.ifortex.internship.emergencyservice.service;
 
 import com.ifortex.internship.emergencyservice.dto.request.UpdateEmergencySymptomsRequest;
 import com.ifortex.internship.emergencyservice.dto.response.EmergencySymptomListDto;
-import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyViewDto;
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserDiseaseDto;
+import com.ifortex.internship.emergencyservice.model.constant.EmergencyLocationType;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyAssignment;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyFeedback;
+import com.ifortex.internship.emergencyservice.model.emergency.EmergencyResolutionEntity;
 import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
+import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyAssignmentSnapshot;
+import com.ifortex.internship.emergencyservice.model.snapshot.EmergencyFeedbackSnapshot;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
+import com.ifortex.internship.emergencyservice.model.snapshot.ParamedicEmergencyLocationSnapshot;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.UserAllergyRepository;
 import com.ifortex.internship.emergencyservice.repository.UserDiseaseRepository;
+import com.ifortex.internship.emergencyservice.util.EmergencyAssignmentMapper;
 import com.ifortex.internship.emergencyservice.util.EmergencyLocationMapper;
 import com.ifortex.internship.emergencyservice.util.EmergencySnapshotMapper;
 import com.ifortex.internship.emergencyservice.util.UserAllergyMapper;
 import com.ifortex.internship.emergencyservice.util.UserDiseaseMapper;
+import com.ifortex.internship.emergencyservice.websocket.GeoLocationDto;
 import com.ifortex.internship.medstarter.exception.custom.EntityNotFoundException;
 import com.ifortex.internship.medstarter.security.service.AuthenticationFacade;
 import jakarta.transaction.Transactional;
@@ -27,11 +35,13 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -46,6 +56,7 @@ public class EmergencySnapshotService {
     public static final String LOG_UPDATED_SNAPSHOT_SAVED_FOR_EMERGENCY = "Updated snapshot saved for emergency {}";
     public static final String LOG_NO_ONGOING_EMERGENCY_FOUND_FOR_CLIENT = "No ongoing emergency found for client: {}";
 
+    RedisService redisService;
     SymptomService symptomService;
     UserAllergyMapper userAllergyMapper;
     UserDiseaseMapper userDiseaseMapper;
@@ -55,10 +66,11 @@ public class EmergencySnapshotService {
     UserDiseaseRepository userDiseaseRepository;
     EmergencyLocationMapper emergencyLocationMapper;
     EmergencySnapshotMapper emergencySnapshotMapper;
+    EmergencyAssignmentMapper emergencyAssignmentMapper;
     EmergencySnapshotRepository emergencySnapshotRepository;
 
     @Transactional
-    public void createSnapshot(Emergency emergency, ParamedicEmergencyLocation location, List<UUID> symptomsIds) {
+    public void createSnapshot(Emergency emergency, List<UUID> symptomsIds) {
         UUID clientId = emergency.getClientId();
         String firstName = authenticationFacade.getUserFirstNameFromAuthentication();
         Objects.requireNonNull(firstName, "First name is missing in security context");
@@ -77,7 +89,7 @@ public class EmergencySnapshotService {
             .setClientFirstName(firstName)
             .setLatitude(emergency.getLatitude())
             .setLongitude(emergency.getLongitude())
-            .setParamedicLocations(List.of(emergencyLocationMapper.toSnapshot(location)))
+            .setParamedicLocations(new ArrayList<>())
             .setSymptoms(symptoms)
             .setAllergies(userAllergies)
             .setDiseases(userDiseases);
@@ -171,22 +183,165 @@ public class EmergencySnapshotService {
     }
 
     @Transactional
-    public Optional<ParamedicEmergencyViewDto> getAssignedEmergency(UUID paramedicId) {
-        log.debug("Fetching assigned emergency for paramedic {}", paramedicId);
+    public void updateSnapshotAfterCancellationByParamedic(Emergency emergency,
+                                                           EmergencyAssignment assignment,
+                                                           BigDecimal latitude,
+                                                           BigDecimal longitude) {
+        log.info("Updating snapshot with canceled assignment for emergency {}", emergency.getId());
 
-        var emergency = emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)
-            .orElseThrow(
-                () -> {
-                    log.error("No ongoing emergency found for paramedic: {}", paramedicId);
-                    return new EntityNotFoundException(EXCEPTION_NO_ONGOING_EMERGENCY_FOUND);
-                }
-            );
+        String emergencyId = emergency.getId().toString();
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergencyId);
+        snapshot.setParamedicName(null);
 
-        Optional<EmergencySnapshot> emergencySnapshotOpt = emergencySnapshotRepository.findById(emergency.getId().toString());
-        if (emergencySnapshotOpt.isEmpty()) {
-            log.info("No ongoing emergency assigned to paramedic {}", paramedicId);
+        ParamedicEmergencyLocationSnapshot locationSnapshot = new ParamedicEmergencyLocationSnapshot()
+            .setEmergencyId(emergency.getId())
+            .setParamedicId(assignment.getParamedicId())
+            .setLatitude(latitude)
+            .setLongitude(longitude)
+            .setTimestamp(Instant.now())
+            .setLocationType(EmergencyLocationType.CANCELLED_BY_PARAMEDIC);
+
+        List<ParamedicEmergencyLocationSnapshot> locations = snapshot.getParamedicLocations();
+        if (locations == null) {
+            locations = new ArrayList<>();
+            snapshot.setParamedicLocations(locations);
         }
-        return emergencySnapshotOpt.map(emergencySnapshotMapper::toParamedicViewDto);
+        locations.add(locationSnapshot);
+        log.debug("Cancellation Location added to snapshot for emergency: {}", emergencyId);
+
+        EmergencyAssignmentSnapshot assignmentSnapshot = snapshot.getAssignments().stream()
+            .filter(ass -> ass.getId().equals(assignment.getId()))
+            .findFirst()
+            .orElseThrow(() -> new EntityNotFoundException("Assignment snapshot not found for ID: " + assignment.getId()));
+
+        assignmentSnapshot.setCanceledAt(assignment.getCanceledAt());
+        assignmentSnapshot.setCancellationReason(assignment.getCancellationReason().getDescription());
+        assignmentSnapshot.setCancellationComment(assignment.getCancellationComment());
+
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot updated with canceled assignment for emergency {}", emergencyId);
+    }
+
+    public void updateEmergencySnapshotAfterParamedicAssign(
+        Emergency emergency,
+        EmergencyAssignment assignment,
+        ParamedicEmergencyLocation paramedicEmergencyLocation,
+        String paramedicFirstName) {
+
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergency.getId().toString());
+        log.debug("Updating snapshot after paramedic: {} assigned for emergency {}", emergency.getParamedicId(), emergency.getId());
+        snapshot.setParamedicName(paramedicFirstName);
+
+        EmergencyAssignmentSnapshot assignmentSnapshot = emergencyAssignmentMapper.toSnapshot(assignment);
+        assignmentSnapshot.setParamedicName(paramedicFirstName);
+        addAssignmentSnapshot(snapshot, assignmentSnapshot);
+        log.debug("Added assignment snapshot for paramedic {} to emergency {}", assignment.getParamedicId(), emergency.getId());
+
+        var snapshotLocation = emergencyLocationMapper.toSnapshot(paramedicEmergencyLocation);
+        snapshot.getParamedicLocations().add(snapshotLocation);
+
+        emergencySnapshotRepository.save(snapshot);
+        log.debug("Snapshot for emergency {} updated successfully", emergency.getId());
+    }
+
+    public void updateSnapshotAfterCompletion(Emergency emergency, ParamedicEmergencyLocation location, EmergencyResolutionEntity resolution) {
+        String emergencyId = emergency.getId().toString();
+        log.info("Updating snapshot after completion of emergency {}", emergencyId);
+
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergencyId)
+            .setResolution(resolution.getDescription())
+            .setResolutionExplanation(emergency.getResolutionExplanation())
+            .setStatus(EmergencyStatus.COMPLETED)
+            .setClosedAt(Instant.now());
+        setDuration(snapshot);
+
+        ParamedicEmergencyLocationSnapshot locationSnapshot = new ParamedicEmergencyLocationSnapshot()
+            .setEmergencyId(emergency.getId())
+            .setLatitude(location.getLatitude())
+            .setLongitude(location.getLongitude())
+            .setTimestamp(location.getTimestamp())
+            .setParamedicId(emergency.getParamedicId())
+            .setLocationType(EmergencyLocationType.FINISHED);
+
+        addLocationSnapshot(snapshot, locationSnapshot);
+
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot updated for completed emergency {}", emergencyId);
+    }
+
+    @Transactional
+    public void updateSnapshotAfterAdminFinish(Emergency emergency, EmergencyResolutionEntity resolution) {
+        String emergencyId = emergency.getId().toString();
+        log.info("Updating snapshot for emergency [{}] manually finished by admin", emergencyId);
+
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergencyId)
+            .setStatus(EmergencyStatus.FINISHED_BY_ADMIN)
+            .setResolution(resolution.getDescription())
+            .setResolutionExplanation(emergency.getResolutionExplanation())
+            .setClosedAt(Instant.now());
+        setDuration(snapshot);
+
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot updated after manual admin completion for emergency [{}]", emergencyId);
+    }
+
+    @Transactional
+    public void updateSnapshotAfterClientCancellation(Emergency emergency) {
+        String emergencyId = emergency.getId().toString();
+        EmergencySnapshot snapshot = getEmergencySnapshotByEmergencyId(emergencyId)
+            .setStatus(EmergencyStatus.CANCELLED)
+            .setClosedAt(Instant.now())
+            .setResolution("Cancelled by client")
+            .setResolutionExplanation(emergency.getResolutionExplanation());
+        setDuration(snapshot);
+
+        if (emergency.getParamedicId() != null) {
+            GeoLocationDto lastParamedicLocation = redisService.getLocation(emergency.getId(), emergency.getParamedicId()).orElseThrow(() -> {
+                log.error("Last location for paramedic: [{}] for emergency: [{}] not found in the redis db",
+                    emergency.getParamedicId(), emergencyId);
+                return new EntityNotFoundException("Last paramedic location not found");
+            });
+
+            ParamedicEmergencyLocationSnapshot locationSnapshot = new ParamedicEmergencyLocationSnapshot()
+                .setEmergencyId(emergency.getId())
+                .setLatitude(lastParamedicLocation.latitude())
+                .setLongitude(lastParamedicLocation.longitude())
+                .setTimestamp(lastParamedicLocation.timestamp())
+                .setParamedicId(emergency.getParamedicId())
+                .setLocationType(EmergencyLocationType.CANCELLED_BY_CLIENT);
+
+            addLocationSnapshot(snapshot, locationSnapshot);
+        }
+
+        emergencySnapshotRepository.save(snapshot);
+
+        log.info("Snapshot updated after cancellation by client [{}]", emergency.getClientId());
+    }
+
+    public void updateSnapshotAfterFeedback(EmergencyFeedback feedback) {
+        UUID emergencyId = feedback.getEmergency().getId();
+        log.debug("Adding feedback for emergency: [{}] to the snapshot", emergencyId);
+
+        var snapshot = getEmergencySnapshotByEmergencyId(emergencyId.toString());
+        EmergencyFeedbackSnapshot
+            feedbackSnapshot = EmergencyFeedbackSnapshot.builder()
+            .id(feedback.getId())
+            .emergencyId(emergencyId)
+            .grade(feedback.getGrade())
+            .comment(feedback.getComment())
+            .createdAt(feedback.getCreatedAt())
+            .build();
+        snapshot.setFeedback(feedbackSnapshot);
+        emergencySnapshotRepository.save(snapshot);
+        log.info("Snapshot for emergency: [{}] updated successfully after adding feedback", emergencyId);
+    }
+
+    private EmergencySnapshot getEmergencySnapshotByEmergencyId(String emergencyId) {
+        return emergencySnapshotRepository.findById(emergencyId)
+            .orElseThrow(() -> {
+                log.error("Snapshot not found for emergency: {}", emergencyId);
+                return new EntityNotFoundException("Snapshot not found for emergency " + emergencyId);
+            });
     }
 
     private Emergency getEmergencyByClientIdAndStatus(UUID clientId, EmergencyStatus status) {
@@ -197,4 +352,25 @@ public class EmergencySnapshotService {
             }
         );
     }
+
+    private void setDuration(EmergencySnapshot snapshot) {
+        if (snapshot.getCreatedAt() != null && snapshot.getClosedAt() != null) {
+            snapshot.setDuration(Duration.between(snapshot.getCreatedAt(), snapshot.getClosedAt()));
+        }
+    }
+
+    private void addAssignmentSnapshot(EmergencySnapshot snapshot, EmergencyAssignmentSnapshot assignmentSnapshot) {
+        if (snapshot.getAssignments() == null) {
+            snapshot.setAssignments(new ArrayList<>());
+        }
+        snapshot.getAssignments().add(assignmentSnapshot);
+    }
+
+    private void addLocationSnapshot(EmergencySnapshot snapshot, ParamedicEmergencyLocationSnapshot locationSnapshot) {
+        if (snapshot.getParamedicLocations() == null) {
+            snapshot.setParamedicLocations(new ArrayList<>());
+        }
+        snapshot.getParamedicLocations().add(locationSnapshot);
+    }
+
 }

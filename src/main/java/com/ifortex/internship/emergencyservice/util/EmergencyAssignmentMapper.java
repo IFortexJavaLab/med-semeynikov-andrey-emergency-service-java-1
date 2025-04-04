@@ -9,5 +9,6 @@ import org.mapstruct.Mapping;
 public interface EmergencyAssignmentMapper {
 
     @Mapping(source = "emergency.id", target = "emergencyId")
+    @Mapping(source = "cancellationReason.description", target = "cancellationReason")
     EmergencyAssignmentSnapshot toSnapshot(EmergencyAssignment entity);
 }

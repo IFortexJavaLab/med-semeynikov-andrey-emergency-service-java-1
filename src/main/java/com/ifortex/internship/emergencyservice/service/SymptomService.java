@@ -48,7 +48,7 @@ public class SymptomService {
 
         if (symptomRepository.findByName(symptomCreate.name()).isPresent()) {
             log.error(LOG_SYMPTOM_WITH_NAME_IS_ALREADY_EXISTS, name);
-            throw new DuplicateResourceException(String.format("Symptom with name %s already exists.", name));
+            throw new DuplicateResourceException(String.format("Symptom with name [%s] already exists.", name));
         }
 
         SymptomType newType = symptomCreate.type();
@@ -119,10 +119,7 @@ public class SymptomService {
                 log.error("Cannot assign parent with ID: {}. Circular reference detected. Symptom to update: {}",
                     symptomUpdate.parentId(),
                     symptomUpdate.id());
-                throw new InvalidRequestException(
-                    String.format("Cannot assign parent with ID: %s. Circular reference detected. Symptom to update: %s",
-                        symptomUpdate.parentId(),
-                        symptomUpdate.id()));
+                throw new InvalidRequestException("Cannot assign parent. Circular reference detected.");
             }
 
             List<Symptom> siblings = newParent.getChildren().stream()
@@ -136,10 +133,9 @@ public class SymptomService {
                         symptomUpdate.type(),
                         symptomUpdate.id());
                     throw new InvalidRequestException(
-                        String.format("Cannot assign to parent with ID: %s. Sibling symptoms have different type: %s. Symptom to update: %s",
+                        String.format("Cannot assign to parent with ID: %s. Sibling symptoms have different type: %s",
                             symptomUpdate.parentId(),
-                            symptomUpdate.type(),
-                            symptomUpdate.id()));
+                            symptomUpdate.type()));
                 }
             }
         }

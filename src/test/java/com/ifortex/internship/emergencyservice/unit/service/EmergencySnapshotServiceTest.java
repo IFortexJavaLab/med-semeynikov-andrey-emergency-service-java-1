@@ -6,13 +6,13 @@ import com.ifortex.internship.emergencyservice.dto.response.ParamedicEmergencyVi
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import com.ifortex.internship.emergencyservice.model.emergency.Emergency;
-import com.ifortex.internship.emergencyservice.model.emergency.ParamedicEmergencyLocation;
 import com.ifortex.internship.emergencyservice.model.snapshot.EmergencySnapshot;
 import com.ifortex.internship.emergencyservice.model.snapshot.ParamedicEmergencyLocationSnapshot;
 import com.ifortex.internship.emergencyservice.repository.EmergencyRepository;
 import com.ifortex.internship.emergencyservice.repository.EmergencySnapshotRepository;
 import com.ifortex.internship.emergencyservice.repository.UserAllergyRepository;
 import com.ifortex.internship.emergencyservice.repository.UserDiseaseRepository;
+import com.ifortex.internship.emergencyservice.service.EmergencyHistoryService;
 import com.ifortex.internship.emergencyservice.service.EmergencySnapshotService;
 import com.ifortex.internship.emergencyservice.service.SymptomService;
 import com.ifortex.internship.emergencyservice.util.EmergencyLocationMapper;
@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,10 +62,10 @@ class EmergencySnapshotServiceTest {
     @Mock AuthenticationFacade authenticationFacade;
 
     @InjectMocks EmergencySnapshotService emergencySnapshotService;
+    @InjectMocks EmergencyHistoryService historyService;
 
     Emergency emergency;
     EmergencySnapshot snapshot;
-    ParamedicEmergencyLocation location;
     UUID clientId;
 
     @BeforeEach
@@ -95,10 +96,10 @@ class EmergencySnapshotServiceTest {
         when(userDiseaseRepository.findByUserId(clientId)).thenReturn(Collections.emptyList());
         when(userDiseaseMapper.toDtoList(any())).thenReturn(Collections.emptyList());
         when(symptomService.collectParentsSymptomsForEmergency(any(), any())).thenReturn(Collections.emptyList());
-        when(emergencyLocationMapper.toSnapshot(any())).thenReturn(new ParamedicEmergencyLocationSnapshot());
+        lenient().when(emergencyLocationMapper.toSnapshot(any())).thenReturn(new ParamedicEmergencyLocationSnapshot());
         when(emergencySnapshotRepository.save(any())).thenReturn(snapshot);
 
-        emergencySnapshotService.createSnapshot(emergency, location, List.of());
+        emergencySnapshotService.createSnapshot(emergency, List.of());
 
         verify(emergencySnapshotRepository).save(any(EmergencySnapshot.class));
     }
@@ -198,9 +199,9 @@ class EmergencySnapshotServiceTest {
 
         when(emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)).thenReturn(Optional.of(emergency));
         when(emergencySnapshotRepository.findById(emergency.getId().toString())).thenReturn(Optional.of(snapshot));
-        when(emergencySnapshotMapper.toParamedicViewDto(snapshot)).thenReturn(new ParamedicEmergencyViewDto());
+        when(emergencySnapshotMapper.toParamedicViewDtoOngoing(snapshot)).thenReturn(new ParamedicEmergencyViewDto());
 
-        Optional<ParamedicEmergencyViewDto> result = emergencySnapshotService.getAssignedEmergency(paramedicId);
+        Optional<ParamedicEmergencyViewDto> result = historyService.getCurrentAssignedEmergency(paramedicId);
 
         assertTrue(result.isPresent());
     }
@@ -212,6 +213,6 @@ class EmergencySnapshotServiceTest {
         when(emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () ->
-            emergencySnapshotService.getAssignedEmergency(paramedicId));
+            historyService.getCurrentAssignedEmergency(paramedicId));
     }
 }

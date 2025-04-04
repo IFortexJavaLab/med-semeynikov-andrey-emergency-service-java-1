@@ -3,7 +3,6 @@ package com.ifortex.internship.emergencyservice.model.snapshot;
 import com.ifortex.internship.emergencyservice.dto.response.SymptomDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserAllergyDto;
 import com.ifortex.internship.emergencyservice.dto.response.UserDiseaseDto;
-import com.ifortex.internship.emergencyservice.model.constant.EmergencyResolution;
 import com.ifortex.internship.emergencyservice.model.constant.EmergencyStatus;
 import jakarta.persistence.Id;
 import lombok.AccessLevel;
@@ -19,7 +18,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Document(collection = "emergency_snapshots")
 @Getter
@@ -38,7 +36,7 @@ public class EmergencySnapshot {
     EmergencyStatus status;
 
     String clientFirstName;
-    UUID paramedicId;
+    String paramedicName;
     BigDecimal latitude;
     BigDecimal longitude;
 
@@ -46,7 +44,7 @@ public class EmergencySnapshot {
     List<EmergencyAssignmentSnapshot> assignments;
 
     String resolutionExplanation;
-    EmergencyResolution resolution;
+    String resolution;
     EmergencyFeedbackSnapshot feedback;
 
     List<SymptomDto> symptoms;
