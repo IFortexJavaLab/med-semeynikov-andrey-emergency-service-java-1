@@ -25,6 +25,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -139,6 +141,7 @@ public class EmergencyHistoryService {
                 ))
                 .orElse(null);
             emergencyViewDto.setCurrentParamedicLocation(lastParamedicLocation);
+            emergencyViewDto.setDuration(Duration.between(emergency.getCreatedAt(), Instant.now()));
         }
 
         return emergencyViewDto;

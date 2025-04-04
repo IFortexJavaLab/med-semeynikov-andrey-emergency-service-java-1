@@ -328,6 +328,7 @@ public class EmergencySnapshotService {
             .id(feedback.getId())
             .emergencyId(emergencyId)
             .grade(feedback.getGrade())
+            .comment(feedback.getComment())
             .createdAt(feedback.getCreatedAt())
             .build();
         snapshot.setFeedback(feedbackSnapshot);

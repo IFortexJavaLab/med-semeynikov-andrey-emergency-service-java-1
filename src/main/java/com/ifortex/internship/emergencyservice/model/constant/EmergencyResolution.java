@@ -14,7 +14,8 @@ public enum EmergencyResolution {
     HOSPITALIZED_UNCONSCIOUS("Hospitalized unconscious"),
     FIRST_AID_NO_HOSPITALIZATION("First aid provided, no hospitalization"),
     NO_HELP_NEEDED("No help needed"),
-    FALSE_ALARM("False alarm");
+    FALSE_ALARM("False alarm"),
+    OTHER_REASON("Other reason");
 
     String description;
 

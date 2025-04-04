@@ -59,17 +59,18 @@ public class ParamedicSearchService {
                 log.info("Aborting search: emergency [{}] is no longer active", emergencyId);
                 return;
             }
-            log.debug("Attempt {}: searching paramedic within radius {} km", i + 1, radius);
+            log.debug("Attempt {}: searching paramedic within radius {} km. Emergency [{}]", i + 1, radius, emergencyId);
             Optional<ParamedicLocation>
                 found =
                 paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius, emergency.getId());
 
             if (found.isPresent()) {
-                log.info("Paramedic {} found on attempt {} within radius {}", found.get().getParamedicId(), i + 1, radius);
+                log.info("Paramedic {} found on attempt {} within radius {}. Emergency [{}]",
+                    found.get().getParamedicId(), i + 1, radius, emergencyId);
                 assign(found.get(), emergency);
                 return;
             }
-            log.debug("No paramedic found on attempt {}. Retrying after delay...", i + 1);
+            log.debug("No paramedic found on attempt {}. Retrying after delay...  Emergency [{}]", i + 1, emergencyId);
             sleep(baseDelay);
         }
 
@@ -88,7 +89,7 @@ public class ParamedicSearchService {
                 found =
                 paramedicLocationRepository.findNearestAvailableParamedicInRadius(latitude, longitude, radius, emergency.getId());
             if (found.isPresent()) {
-                log.info("Paramedic {} found during extended search", found.get().getParamedicId());
+                log.info("Paramedic {} found during extended search. Emergency [{}]", found.get().getParamedicId(), emergencyId);
                 assign(found.get(), emergency);
                 return;
             }
@@ -108,7 +109,7 @@ public class ParamedicSearchService {
             emergencySnapshot.setStatus(emergency.getStatus()).setClosedAt(Instant.now());
             emergencySnapshotRepository.save(emergencySnapshot);
 
-            log.info("MOCK. Sent request to reserve team service");
+            log.info("MOCK. Sent request to reserve team service. Emergency [{}]", emergencyId);
 
             log.info("Emergency [{}] resolved by reserve team. No paramedic found in {} minutes", emergency.getId(),
                 extendedSearchDuration.toMinutes());
@@ -138,7 +139,7 @@ public class ParamedicSearchService {
             paramedicEmergencyLocation,
             paramedicLocation.getParamedicFirstName());
 
-        log.info("MOCK. Notify paramedic: [{}] about assigned emergency", paramedicId);
+        log.info("MOCK. Notify paramedic: [{}] about assigned emergency [{}]", paramedicId, emergencyId);
 
         log.info("Paramedic {} assigned to emergency {} with accepted and current location saved", paramedicId, emergencyId);
     }

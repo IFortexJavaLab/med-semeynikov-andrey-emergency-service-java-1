@@ -59,6 +59,7 @@ public class EmergencyCommandService {
         return emergency;
     }
 
+    @Transactional
     public Emergency cancelAssignedEmergencyByParamedicTransactional(ParamedicCancelEmergencyRequest request, UUID paramedicId) {
         Emergency emergency = emergencyRepository.findByParamedicIdAndStatus(paramedicId, EmergencyStatus.ONGOING)
             .orElseThrow(() -> {

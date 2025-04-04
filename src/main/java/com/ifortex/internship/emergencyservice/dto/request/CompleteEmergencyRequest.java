@@ -8,7 +8,8 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public record CompleteEmergencyRequest(
-    @NotNull(message = "Emergency resolution is required") Long emergencyResolutionId,
+    @NotNull(message = "Emergency resolution is required")
+    Long emergencyResolutionId,
     @Size(message = "Explanation can't be more than 1000 symbols", max = 1000)
     String resolutionExplanation,
     @NotNull(message = "Latitude is required")

@@ -11,6 +11,8 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +33,8 @@ public interface EmergencySnapshotMapper {
     ParamedicEmergencyViewDto toParamedicViewDtoFinished(EmergencySnapshot snapshot);
 
     @Mapping(target = "feedback", source = "feedback")
+    @Mapping(target = "symptoms", source = "symptoms", qualifiedByName = "buildSymptomTree")
+    @Mapping(target = "duration", expression = "java(resolveDuration(snapshot.getDuration(), snapshot.getCreatedAt()))")
     ClientEmergencyViewDto toClientViewDto(EmergencySnapshot snapshot);
 
     @Mapping(target = "symptoms", source = "symptoms", qualifiedByName = "buildSymptomTree")
@@ -66,5 +70,12 @@ public interface EmergencySnapshotMapper {
         }
 
         return roots;
+    }
+
+    default Duration resolveDuration(Duration duration, Instant createdAt) {
+        if (duration != null) {
+            return duration;
+        }
+        return Duration.between(createdAt, Instant.now());
     }
 }

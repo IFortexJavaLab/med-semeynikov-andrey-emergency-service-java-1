@@ -173,9 +173,9 @@ public class EmergencyService {
         }
 
         var feedback = new EmergencyFeedback(emergency, request.grade(), request.comment());
-        feedback = emergencyFeedbackRepository.save(feedback);
+        emergencyFeedbackRepository.save(feedback);
         emergency.setFeedback(feedback);
-        emergencyRepository.save(emergency);
+        emergencyRepository.saveAndFlush(emergency);
         log.info("Emergency feedback created and saved for emergency: [{}] by client:[{}]. Updating snapshot...", emergencyId, clientId);
 
         snapshotService.updateSnapshotAfterFeedback(feedback);

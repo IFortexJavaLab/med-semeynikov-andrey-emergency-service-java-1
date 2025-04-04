@@ -32,6 +32,6 @@ public class ClientEmergencyViewDto {
     String resolutionExplanation;
     String paramedicName;
     ParamedicLocationViewDto lastParamedicLocation;
-    List<SymptomDto> symptoms;
+    List<EmergencySymptomListDto> symptoms;
     FeedbackDto feedback;
 }

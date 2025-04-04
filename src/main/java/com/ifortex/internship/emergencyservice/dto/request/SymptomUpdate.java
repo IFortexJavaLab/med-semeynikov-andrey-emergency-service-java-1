@@ -11,6 +11,7 @@ import org.hibernate.validator.constraints.UUID;
 public record SymptomUpdate(
 
     @UUID(message = "Must be a valid symptom ID")
+    @NotNull(message = "Id is required")
     String id,
 
     @NotNull(message = "Symptom name is required")
