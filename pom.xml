@@ -20,6 +20,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <springdoc.version>2.8.4</springdoc.version>
         <med-starter.version>0.0.1-SNAPSHOT</med-starter.version>
+        <accounting-api.version>0.0.1-SNAPSHOT</accounting-api.version>
     </properties>
 
     <dependencyManagement>
@@ -45,6 +46,11 @@
         <dependency>
             <groupId>com.ifortex.internship</groupId>
             <artifactId>med-starter-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ifortex.internship</groupId>
+            <artifactId>accounting-api</artifactId>
+            <version>${accounting-api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
