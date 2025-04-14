@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time Paramedic Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .paramedic-box {
+            background: #eef;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<h1>🚑 Paramedic Location Tracker</h1>
+<div id="status">Connecting...</div>
+<div id="container"></div>
+
+<script>
+    const socket = new SockJS('http://localhost:8083/ws');
+    const stompClient = Stomp.over(socket);
+    stompClient.debug = null;
+
+    const paramedicMap = new Map();
+
+    stompClient.connect({}, function () {
+        document.getElementById('status').innerText = '✅ Connected to WebSocket';
+
+        stompClient.subscribe('/topic/location', function (message) {
+            try {
+                const data = JSON.parse(message.body);
+                const { paramedicId, latitude, longitude, timestamp } = data;
+
+                // Обновляем данные
+                paramedicMap.set(paramedicId, { latitude, longitude, timestamp });
+
+                renderParamedics();
+            } catch (e) {
+                console.error('Invalid JSON:', message.body);
+            }
+        });
+    }, function (error) {
+        document.getElementById('status').innerText = '❌ Connection error: ' + error;
+    });
+
+    function renderParamedics() {
+        const container = document.getElementById('container');
+        container.innerHTML = '';
+
+        paramedicMap.forEach((location, paramedicId) => {
+            const box = document.createElement('div');
+            box.className = 'paramedic-box';
+            box.innerHTML = `
+                <strong>Paramedic ID:</strong> ${paramedicId}<br>
+                <strong>Latitude:</strong> ${location.latitude}<br>
+                <strong>Longitude:</strong> ${location.longitude}<br>
+                <strong>Timestamp:</strong> ${location.timestamp}
+            `;
+            container.appendChild(box);
+        });
+    }
+</script>
+</body>
+</html>

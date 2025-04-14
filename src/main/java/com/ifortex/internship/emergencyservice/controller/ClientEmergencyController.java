@@ -112,7 +112,7 @@ public class ClientEmergencyController {
     )
     @PostMapping("{emergencyId}/feedback")
     public ResponseEntity<Void> leaveFeedback(
-        @RequestBody FeedbackRequest request,
+        @Valid @RequestBody FeedbackRequest request,
         @PathVariable(name = "emergencyId") UUID emergencyId,
         @AuthenticationPrincipal UserDetailsImpl client
     ) {
